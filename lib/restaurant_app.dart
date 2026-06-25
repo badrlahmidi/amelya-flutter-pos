@@ -870,12 +870,11 @@ class _PaymentWorkspace extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final order = orders[index];
                     return _Card(
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: _OrderSummary(order: order),
-                          ),
-                          const SizedBox(width: 18),
+                          _OrderSummary(order: order),
+                          const SizedBox(height: 14),
                           FilledButton.icon(
                             key: ValueKey<String>('pay-${order.id}'),
                             onPressed: () => controller.settleOrder(
@@ -883,7 +882,7 @@ class _PaymentWorkspace extends StatelessWidget {
                               controller.selectedPaymentMethod,
                             ),
                             icon: const Icon(Icons.receipt_long),
-                            label: Text('Encaisser ${_money(order.total)}'),
+                            label: Text('Encaisser - ${_money(order.total)}'),
                           ),
                         ],
                       ),
