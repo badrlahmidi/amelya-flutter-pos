@@ -518,9 +518,7 @@ class RestaurantController extends ChangeNotifier {
 }
 
 class RestaurantApp extends StatefulWidget {
-  const RestaurantApp({Key? key, RestaurantController? controller})
-      : controller = controller,
-        super(key: key);
+  const RestaurantApp({Key? key, this.controller}) : super(key: key);
 
   final RestaurantController? controller;
 
@@ -1226,12 +1224,16 @@ class _MenuGrid extends StatelessWidget {
                 const Spacer(),
                 Row(
                   children: [
-                    Text(_money(item.price),
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xffff9f43))),
-                    const Spacer(),
+                    Expanded(
+                      child: Text(_money(item.price),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xffff9f43))),
+                    ),
+                    const SizedBox(width: 8),
                     const Icon(Icons.add_circle, color: Color(0xff22c55e)),
                   ],
                 ),

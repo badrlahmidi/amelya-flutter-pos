@@ -1,7 +1,20 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_pos_app/restaurant_app.dart';
 
 void main() {
+  setUp(() {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.window.physicalSizeTestValue = const Size(1440, 900);
+    binding.window.devicePixelRatioTestValue = 1;
+  });
+
+  tearDown(() {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.window.clearPhysicalSizeTestValue();
+    binding.window.clearDevicePixelRatioTestValue();
+  });
+
   testWidgets('renders the desktop POS workflow shell',
       (WidgetTester tester) async {
     await tester.pumpWidget(const RestaurantApp());
