@@ -1723,7 +1723,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   @override
   void initState() {
     super.initState();
-    amountText = widget.order.total.toStringAsFixed(0);
+    amountText = '';
   }
 
   @override
@@ -1771,7 +1771,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
                               method = entry;
                               if (entry != PaymentMethod.cash) {
                                 amountText =
-                                    widget.order.total.toStringAsFixed(0);
+                                    widget.order.total.toStringAsFixed(2);
+                              } else {
+                                amountText = '';
                               }
                             });
                           },
