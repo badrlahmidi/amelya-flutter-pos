@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 enum AppWorkspace {
-  pos,
-  waiter,
+  floor,
   kitchen,
-  payment,
   patron,
   settings,
+}
+
+enum OrderType {
+  dineIn,
+  takeaway,
+  delivery,
 }
 
 enum OrderStatus {
@@ -43,6 +47,7 @@ class MenuItem {
     required this.station,
     required this.price,
     required this.color,
+    required this.icon,
     this.available = true,
   });
 
@@ -52,6 +57,7 @@ class MenuItem {
   final String station;
   final double price;
   final Color color;
+  final IconData icon;
   final bool available;
 }
 
@@ -84,31 +90,53 @@ class OrderLine {
 class RestaurantOrder {
   const RestaurantOrder({
     required this.id,
-    required this.tableName,
+    required this.type,
     required this.serverName,
     required this.lines,
     required this.status,
     required this.createdAt,
+    this.tableName,
+    this.customerLabel,
+    this.discountRate = 0,
     this.paidAt,
     this.paymentMethod,
+    this.amountPaid = 0,
   });
 
   final String id;
-  final String tableName;
+  final OrderType type;
   final String serverName;
   final List<OrderLine> lines;
   final OrderStatus status;
   final DateTime createdAt;
+  final String? tableName;
+  final String? customerLabel;
+  final double discountRate;
   final DateTime? paidAt;
   final PaymentMethod? paymentMethod;
+  final double amountPaid;
+
+  String get title {
+    if (type == OrderType.dineIn) {
+      return tableName ?? 'Table';
+    }
+    return customerLabel ?? _orderTypeName(type);
+  }
 
   double get subtotal {
     return lines.fold<double>(0, (sum, line) => sum + line.total);
   }
 
-  double get tax => subtotal * 0.1;
+  double get discount => subtotal * discountRate;
 
-  double get total => subtotal + tax;
+  double get tax => (subtotal - discount) * 0.1;
+
+  double get total => subtotal - discount + tax;
+
+  double get changeDue {
+    final change = amountPaid - total;
+    return change < 0 ? 0 : change;
+  }
 
   int get itemCount {
     return lines.fold<int>(0, (sum, line) => sum + line.quantity);
@@ -116,23 +144,31 @@ class RestaurantOrder {
 
   RestaurantOrder copyWith({
     String? id,
-    String? tableName,
+    OrderType? type,
     String? serverName,
     List<OrderLine>? lines,
     OrderStatus? status,
     DateTime? createdAt,
+    String? tableName,
+    String? customerLabel,
+    double? discountRate,
     DateTime? paidAt,
     PaymentMethod? paymentMethod,
+    double? amountPaid,
   }) {
     return RestaurantOrder(
       id: id ?? this.id,
-      tableName: tableName ?? this.tableName,
+      type: type ?? this.type,
       serverName: serverName ?? this.serverName,
       lines: lines ?? this.lines,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      tableName: tableName ?? this.tableName,
+      customerLabel: customerLabel ?? this.customerLabel,
+      discountRate: discountRate ?? this.discountRate,
       paidAt: paidAt ?? this.paidAt,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      amountPaid: amountPaid ?? this.amountPaid,
     );
   }
 }
@@ -157,10 +193,6 @@ class DailyReport {
   double get taxCollected {
     return paidOrders.fold<double>(0, (sum, order) => sum + order.tax);
   }
-
-  int get covers {
-    return paidOrders.fold<int>(0, (sum, order) => sum + order.itemCount);
-  }
 }
 
 class ItemSales {
@@ -178,76 +210,83 @@ class ItemSales {
 class LocalRestaurantDatabase {
   LocalRestaurantDatabase()
       : categories = const [
-          MenuCategory(
-              id: 'burgers', name: 'Burgers', icon: Icons.lunch_dining),
-          MenuCategory(id: 'mains', name: 'Plats', icon: Icons.restaurant),
+          MenuCategory(id: 'grill', name: 'Grill', icon: Icons.outdoor_grill),
+          MenuCategory(id: 'plats', name: 'Plats', icon: Icons.restaurant),
           MenuCategory(id: 'drinks', name: 'Boissons', icon: Icons.local_bar),
           MenuCategory(id: 'desserts', name: 'Desserts', icon: Icons.icecream),
         ],
         menu = const [
           MenuItem(
-            id: 'classic-burger',
-            categoryId: 'burgers',
-            name: 'Classic Burger',
+            id: 'tacos-poulet',
+            categoryId: 'grill',
+            name: 'Tacos Poulet',
             station: 'Grill',
-            price: 8.90,
+            price: 42,
             color: Color(0xfff97316),
+            icon: Icons.lunch_dining,
           ),
           MenuItem(
-            id: 'double-cheese',
-            categoryId: 'burgers',
-            name: 'Double Cheese',
+            id: 'burger-maison',
+            categoryId: 'grill',
+            name: 'Burger Maison',
             station: 'Grill',
-            price: 12.50,
+            price: 55,
             color: Color(0xfffb923c),
+            icon: Icons.fastfood,
           ),
           MenuItem(
-            id: 'veggie-bowl',
-            categoryId: 'mains',
-            name: 'Veggie Bowl',
+            id: 'tagine-kefta',
+            categoryId: 'plats',
+            name: 'Tagine Kefta',
             station: 'Cuisine',
-            price: 11.20,
-            color: Color(0xff22c55e),
-          ),
-          MenuItem(
-            id: 'steak-frites',
-            categoryId: 'mains',
-            name: 'Steak Frites',
-            station: 'Cuisine',
-            price: 18.40,
+            price: 68,
             color: Color(0xffef4444),
+            icon: Icons.restaurant,
           ),
           MenuItem(
-            id: 'iced-tea',
-            categoryId: 'drinks',
-            name: 'Iced Tea',
-            station: 'Bar',
-            price: 3.80,
-            color: Color(0xff38bdf8),
+            id: 'salade-marocaine',
+            categoryId: 'plats',
+            name: 'Salade Marocaine',
+            station: 'Cuisine',
+            price: 28,
+            color: Color(0xff22c55e),
+            icon: Icons.eco,
           ),
           MenuItem(
-            id: 'lemonade',
+            id: 'jus-orange',
             categoryId: 'drinks',
-            name: 'Lemonade Maison',
+            name: 'Jus Orange',
             station: 'Bar',
-            price: 4.20,
+            price: 18,
             color: Color(0xfffacc15),
+            icon: Icons.local_drink,
           ),
           MenuItem(
-            id: 'brownie',
+            id: 'the-menthe',
+            categoryId: 'drinks',
+            name: 'The Menthe',
+            station: 'Bar',
+            price: 14,
+            color: Color(0xff38bdf8),
+            icon: Icons.emoji_food_beverage,
+          ),
+          MenuItem(
+            id: 'tiramisu',
             categoryId: 'desserts',
-            name: 'Brownie',
+            name: 'Tiramisu',
             station: 'Patisserie',
-            price: 6.00,
+            price: 32,
             color: Color(0xffa855f7),
+            icon: Icons.cake,
           ),
           MenuItem(
-            id: 'cheesecake',
+            id: 'creme-caramel',
             categoryId: 'desserts',
-            name: 'Cheesecake',
+            name: 'Creme Caramel',
             station: 'Patisserie',
-            price: 6.70,
+            price: 24,
             color: Color(0xffec4899),
+            icon: Icons.icecream,
           ),
         ];
 
@@ -266,12 +305,14 @@ class LocalRestaurantDatabase {
     _orders.addAll([
       RestaurantOrder(
         id: 'ORD-1001',
+        type: OrderType.dineIn,
         tableName: 'Table 3',
         serverName: 'Mina',
         status: OrderStatus.paid,
         createdAt: DateTime.now().subtract(const Duration(hours: 3)),
         paidAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 20)),
         paymentMethod: PaymentMethod.card,
+        amountPaid: 155.10,
         lines: [
           OrderLine(item: menu[0], quantity: 2),
           OrderLine(item: menu[4], quantity: 2),
@@ -280,13 +321,26 @@ class LocalRestaurantDatabase {
       ),
       RestaurantOrder(
         id: 'ORD-1002',
+        type: OrderType.dineIn,
         tableName: 'Table 8',
         serverName: 'Leo',
         status: OrderStatus.ready,
         createdAt: DateTime.now().subtract(const Duration(minutes: 18)),
         lines: [
-          OrderLine(item: menu[3], quantity: 1, note: 'Cuisson saignant'),
+          OrderLine(item: menu[2], quantity: 1, note: 'Sans piment'),
           OrderLine(item: menu[5], quantity: 2),
+        ],
+      ),
+      RestaurantOrder(
+        id: 'ORD-1003',
+        type: OrderType.takeaway,
+        customerLabel: 'Emporter 12',
+        serverName: 'Sara',
+        status: OrderStatus.sentToKitchen,
+        createdAt: DateTime.now().subtract(const Duration(minutes: 9)),
+        lines: [
+          OrderLine(item: menu[1], quantity: 1),
+          OrderLine(item: menu[4], quantity: 1),
         ],
       ),
     ]);
@@ -320,27 +374,37 @@ class RestaurantController extends ChangeNotifier {
     'Table 6',
     'Table 7',
     'Table 8',
-    'Takeaway',
+    'Table 9',
+    'Table 10',
+    'Table 11',
+    'Table 12',
   ];
   final List<String> servers = const ['Mina', 'Leo', 'Sara', 'Nora'];
 
-  AppWorkspace _workspace = AppWorkspace.pos;
+  AppWorkspace _workspace = AppWorkspace.floor;
   String _selectedCategoryId = '';
-  String _selectedTable = 'Table 1';
   String _selectedServer = 'Mina';
   String _search = '';
-  PaymentMethod _selectedPaymentMethod = PaymentMethod.card;
-  int _nextOrderNumber = 1003;
-  final List<OrderLine> _draftLines = <OrderLine>[];
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
+  int _nextOrderNumber = 1004;
+  int _nextTakeawayNumber = 13;
+  int _nextDeliveryNumber = 4;
+  String? _activeOrderId;
 
   AppWorkspace get workspace => _workspace;
   String get selectedCategoryId => _selectedCategoryId;
-  String get selectedTable => _selectedTable;
   String get selectedServer => _selectedServer;
   String get search => _search;
   PaymentMethod get selectedPaymentMethod => _selectedPaymentMethod;
-  List<OrderLine> get draftLines => List<OrderLine>.unmodifiable(_draftLines);
   List<RestaurantOrder> get orders => database.orders;
+  RestaurantOrder? get activeOrder => _activeOrderId == null
+      ? null
+      : orders.cast<RestaurantOrder?>().firstWhere(
+            (order) => order?.id == _activeOrderId,
+            orElse: () => null,
+          );
+
+  bool get isEditingOrder => activeOrder != null;
 
   List<MenuItem> get filteredMenu {
     final normalizedSearch = _search.trim().toLowerCase();
@@ -352,35 +416,26 @@ class RestaurantController extends ChangeNotifier {
     }).toList();
   }
 
+  List<RestaurantOrder> get unpaidOrders {
+    return orders
+        .where((order) =>
+            order.status != OrderStatus.paid &&
+            order.status != OrderStatus.voided)
+        .toList();
+  }
+
   List<RestaurantOrder> get kitchenOrders {
-    return orders
+    return unpaidOrders
         .where((order) =>
             order.status == OrderStatus.sentToKitchen ||
             order.status == OrderStatus.ready)
         .toList();
   }
-
-  List<RestaurantOrder> get payableOrders {
-    return orders
-        .where((order) =>
-            order.status == OrderStatus.sentToKitchen ||
-            order.status == OrderStatus.ready)
-        .toList();
-  }
-
-  double get draftSubtotal {
-    return _draftLines.fold<double>(0, (sum, line) => sum + line.total);
-  }
-
-  double get draftTax => draftSubtotal * 0.1;
-
-  double get draftTotal => draftSubtotal + draftTax;
 
   DailyReport get report {
     final paidOrders =
         orders.where((order) => order.status == OrderStatus.paid).toList();
-    final openOrders =
-        orders.where((order) => order.status != OrderStatus.paid).toList();
+    final openOrders = unpaidOrders;
     final salesByMethod = <PaymentMethod, double>{};
     final itemTotals = <String, ItemSales>{};
 
@@ -408,18 +463,24 @@ class RestaurantController extends ChangeNotifier {
     );
   }
 
+  RestaurantOrder? occupiedOrderForTable(String table) {
+    return unpaidOrders.cast<RestaurantOrder?>().firstWhere(
+          (order) =>
+              order?.type == OrderType.dineIn && order?.tableName == table,
+          orElse: () => null,
+        );
+  }
+
   void selectWorkspace(AppWorkspace workspace) {
     _workspace = workspace;
+    if (workspace != AppWorkspace.floor) {
+      _activeOrderId = null;
+    }
     notifyListeners();
   }
 
   void selectCategory(String categoryId) {
     _selectedCategoryId = categoryId;
-    notifyListeners();
-  }
-
-  void selectTable(String table) {
-    _selectedTable = table;
     notifyListeners();
   }
 
@@ -438,64 +499,143 @@ class RestaurantController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addItem(MenuItem item) {
-    final index = _draftLines.indexWhere((line) => line.item.id == item.id);
-    if (index == -1) {
-      _draftLines.add(OrderLine(item: item, quantity: 1));
-    } else {
-      _draftLines[index] = _draftLines[index].copyWith(
-        quantity: _draftLines[index].quantity + 1,
-      );
-    }
-    notifyListeners();
-  }
-
-  void decreaseItem(OrderLine line) {
-    final index = _draftLines
-        .indexWhere((storedLine) => storedLine.item.id == line.item.id);
-    if (index == -1) {
-      return;
-    }
-    if (_draftLines[index].quantity <= 1) {
-      _draftLines.removeAt(index);
-    } else {
-      _draftLines[index] = _draftLines[index].copyWith(
-        quantity: _draftLines[index].quantity - 1,
-      );
-    }
-    notifyListeners();
-  }
-
-  void clearDraft() {
-    _draftLines.clear();
-    notifyListeners();
-  }
-
-  RestaurantOrder? sendDraftToKitchen() {
-    if (_draftLines.isEmpty) {
-      return null;
+  RestaurantOrder openTable(String table) {
+    final existing = occupiedOrderForTable(table);
+    if (existing != null) {
+      return openOrder(existing);
     }
 
     final order = RestaurantOrder(
-      id: 'ORD-${_nextOrderNumber++}',
-      tableName: _selectedTable,
+      id: _nextOrderId(),
+      type: OrderType.dineIn,
+      tableName: table,
       serverName: _selectedServer,
-      status: OrderStatus.sentToKitchen,
+      lines: const [],
+      status: OrderStatus.draft,
       createdAt: DateTime.now(),
-      lines: List<OrderLine>.from(_draftLines),
     );
     database.saveOrder(order);
-    _draftLines.clear();
+    return openOrder(order);
+  }
+
+  RestaurantOrder startTakeaway() {
+    final order = RestaurantOrder(
+      id: _nextOrderId(),
+      type: OrderType.takeaway,
+      customerLabel: 'Emporter ${_nextTakeawayNumber++}',
+      serverName: _selectedServer,
+      lines: const [],
+      status: OrderStatus.draft,
+      createdAt: DateTime.now(),
+    );
+    database.saveOrder(order);
+    return openOrder(order);
+  }
+
+  RestaurantOrder startDelivery() {
+    final order = RestaurantOrder(
+      id: _nextOrderId(),
+      type: OrderType.delivery,
+      customerLabel: 'Livraison ${_nextDeliveryNumber++}',
+      serverName: _selectedServer,
+      lines: const [],
+      status: OrderStatus.draft,
+      createdAt: DateTime.now(),
+    );
+    database.saveOrder(order);
+    return openOrder(order);
+  }
+
+  RestaurantOrder openOrder(RestaurantOrder order) {
+    _activeOrderId = order.id;
+    _workspace = AppWorkspace.floor;
     notifyListeners();
     return order;
   }
 
-  RestaurantOrder? payDraftNow() {
-    final order = sendDraftToKitchen();
+  void closeEditor() {
+    _activeOrderId = null;
+    _workspace = AppWorkspace.floor;
+    notifyListeners();
+  }
+
+  void addItem(MenuItem item) {
+    final order = activeOrder;
     if (order == null) {
+      return;
+    }
+    final lines = List<OrderLine>.from(order.lines);
+    final index = lines.indexWhere((line) => line.item.id == item.id);
+    if (index == -1) {
+      lines.add(OrderLine(item: item, quantity: 1));
+    } else {
+      lines[index] = lines[index].copyWith(quantity: lines[index].quantity + 1);
+    }
+    database.saveOrder(order.copyWith(lines: lines, status: OrderStatus.draft));
+    notifyListeners();
+  }
+
+  void decreaseItem(OrderLine line) {
+    final order = activeOrder;
+    if (order == null) {
+      return;
+    }
+    final lines = List<OrderLine>.from(order.lines);
+    final index = lines.indexWhere((stored) => stored.item.id == line.item.id);
+    if (index == -1) {
+      return;
+    }
+    if (lines[index].quantity <= 1) {
+      lines.removeAt(index);
+    } else {
+      lines[index] = lines[index].copyWith(quantity: lines[index].quantity - 1);
+    }
+    database.saveOrder(order.copyWith(lines: lines));
+    notifyListeners();
+  }
+
+  void applyDiscount() {
+    final order = activeOrder;
+    if (order == null) {
+      return;
+    }
+    final nextRate = order.discountRate == 0 ? 0.1 : 0.0;
+    database.saveOrder(order.copyWith(discountRate: nextRate));
+    notifyListeners();
+  }
+
+  void transferTable() {
+    final order = activeOrder;
+    if (order == null || order.type != OrderType.dineIn) {
+      return;
+    }
+    final freeTable = tables.firstWhere(
+      (table) => occupiedOrderForTable(table) == null,
+      orElse: () => order.tableName ?? tables.first,
+    );
+    database.saveOrder(order.copyWith(tableName: freeTable));
+    notifyListeners();
+  }
+
+  void increaseLastLine() {
+    final order = activeOrder;
+    if (order == null || order.lines.isEmpty) {
+      return;
+    }
+    addItem(order.lines.last.item);
+  }
+
+  RestaurantOrder? sendActiveToKitchen() {
+    final order = activeOrder;
+    if (order == null || order.lines.isEmpty) {
       return null;
     }
-    return settleOrder(order, _selectedPaymentMethod);
+    final updated = order.copyWith(status: OrderStatus.sentToKitchen);
+    database.saveOrder(updated);
+    _activeOrderId = null;
+    _workspace = AppWorkspace.floor;
+    notifyListeners();
+    return updated;
   }
 
   RestaurantOrder markReady(RestaurantOrder order) {
@@ -505,16 +645,28 @@ class RestaurantController extends ChangeNotifier {
     return updated;
   }
 
-  RestaurantOrder settleOrder(RestaurantOrder order, PaymentMethod method) {
+  RestaurantOrder payOrder(
+    RestaurantOrder order,
+    PaymentMethod method,
+    double amountPaid,
+  ) {
+    final paidAmount = amountPaid < order.total ? order.total : amountPaid;
     final updated = order.copyWith(
       status: OrderStatus.paid,
       paymentMethod: method,
+      amountPaid: paidAmount,
       paidAt: DateTime.now(),
     );
     database.saveOrder(updated);
+    if (_activeOrderId == order.id) {
+      _activeOrderId = null;
+    }
+    _workspace = AppWorkspace.floor;
     notifyListeners();
     return updated;
   }
+
+  String _nextOrderId() => 'ORD-${_nextOrderNumber++}';
 }
 
 class RestaurantApp extends StatefulWidget {
@@ -585,15 +737,16 @@ class _RestaurantShell extends StatelessWidget {
   }
 
   Widget _workspaceView() {
+    if (controller.workspace == AppWorkspace.floor &&
+        controller.isEditingOrder) {
+      return _OrderEntryWorkspace(controller: controller);
+    }
+
     switch (controller.workspace) {
-      case AppWorkspace.pos:
-        return _PosWorkspace(controller: controller);
-      case AppWorkspace.waiter:
-        return _WaiterWorkspace(controller: controller);
+      case AppWorkspace.floor:
+        return _FloorWorkspace(controller: controller);
       case AppWorkspace.kitchen:
         return _KitchenWorkspace(controller: controller);
-      case AppWorkspace.payment:
-        return _PaymentWorkspace(controller: controller);
       case AppWorkspace.patron:
         return _PatronWorkspace(controller: controller);
       case AppWorkspace.settings:
@@ -625,18 +778,13 @@ class _SideRail extends StatelessWidget {
             child: const Icon(Icons.restaurant_menu, color: Colors.white),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'POS Pro',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          const Text('POS Pro', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 28),
           Expanded(
             child: ListView(
               children: [
-                _railItem(AppWorkspace.pos, Icons.point_of_sale, 'POS'),
-                _railItem(AppWorkspace.waiter, Icons.room_service, 'Serveurs'),
+                _railItem(AppWorkspace.floor, Icons.table_restaurant, 'Salle'),
                 _railItem(AppWorkspace.kitchen, Icons.soup_kitchen, 'Cuisine'),
-                _railItem(AppWorkspace.payment, Icons.payments, 'Paiement'),
                 _railItem(AppWorkspace.patron, Icons.query_stats, 'Patron'),
                 _railItem(AppWorkspace.settings, Icons.settings, 'Reglages'),
               ],
@@ -648,7 +796,8 @@ class _SideRail extends StatelessWidget {
   }
 
   Widget _railItem(AppWorkspace workspace, IconData icon, String label) {
-    final active = controller.workspace == workspace;
+    final active = controller.workspace == workspace &&
+        !(workspace == AppWorkspace.floor && controller.isEditingOrder);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -678,46 +827,8 @@ class _SideRail extends StatelessWidget {
   }
 }
 
-class _PosWorkspace extends StatelessWidget {
-  const _PosWorkspace({Key? key, required this.controller}) : super(key: key);
-
-  final RestaurantController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 7,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Header(
-                title: 'Comptoir desktop POS',
-                subtitle: 'Prise de commande rapide, envoi cuisine et paiement',
-                trailing: _SearchBox(controller: controller),
-              ),
-              const SizedBox(height: 18),
-              _CategoryTabs(controller: controller),
-              const SizedBox(height: 18),
-              Expanded(child: _MenuGrid(controller: controller)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 18),
-        SizedBox(
-          width: 380,
-          child: _OrderPanel(controller: controller),
-        ),
-      ],
-    );
-  }
-}
-
-class _WaiterWorkspace extends StatelessWidget {
-  const _WaiterWorkspace({Key? key, required this.controller})
-      : super(key: key);
+class _FloorWorkspace extends StatelessWidget {
+  const _FloorWorkspace({Key? key, required this.controller}) : super(key: key);
 
   final RestaurantController controller;
 
@@ -727,46 +838,57 @@ class _WaiterWorkspace extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _Header(
-          title: 'Application serveurs',
-          subtitle: 'Selection table, serveur et commande simplifiee',
+          title: 'Plan de salle',
+          subtitle:
+              'Tables, commandes en cours, emporter et livraison par defaut',
           trailing: _ServerSelector(controller: controller),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            FilledButton.icon(
+              key: const ValueKey<String>('start-takeaway'),
+              onPressed: controller.startTakeaway,
+              icon: const Icon(Icons.shopping_bag),
+              label: const Text('Emporter'),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonalIcon(
+              key: const ValueKey<String>('start-delivery'),
+              onPressed: controller.startDelivery,
+              icon: const Icon(Icons.delivery_dining),
+              label: const Text('Livraison'),
+            ),
+          ],
         ),
         const SizedBox(height: 18),
         Expanded(
           child: Row(
             children: [
               Expanded(
-                flex: 3,
+                flex: 7,
                 child: _Card(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Tables',
                           style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 16),
+                              fontSize: 20, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 14),
                       Expanded(
                         child: GridView.count(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1.5,
+                          key: const ValueKey<String>('table-plan'),
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 1.2,
                           children: controller.tables.map((table) {
-                            final active = controller.selectedTable == table;
-                            return OutlinedButton(
-                              key: ValueKey<String>('table-$table'),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: active
-                                    ? const Color(0xffff7a1a)
-                                    : const Color(0xff242733),
-                                foregroundColor: Colors.white,
-                                side: BorderSide(
-                                    color: active
-                                        ? const Color(0xffff7a1a)
-                                        : Colors.white12),
-                              ),
-                              onPressed: () => controller.selectTable(table),
-                              child: Text(table),
+                            final order =
+                                controller.occupiedOrderForTable(table);
+                            return _TableTile(
+                              table: table,
+                              order: order,
+                              onTap: () => controller.openTable(table),
                             );
                           }).toList(),
                         ),
@@ -776,24 +898,563 @@ class _WaiterWorkspace extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 18),
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    Expanded(child: _MenuGrid(controller: controller)),
-                    const SizedBox(height: 18),
-                    _PrimaryActionBar(controller: controller),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 18),
               SizedBox(
-                  width: 340,
-                  child: _OrderPanel(controller: controller, compact: true)),
+                width: 390,
+                child: _OpenOrdersPanel(controller: controller),
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TableTile extends StatelessWidget {
+  const _TableTile({
+    Key? key,
+    required this.table,
+    required this.order,
+    required this.onTap,
+  }) : super(key: key);
+
+  final String table;
+  final RestaurantOrder? order;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final occupied = order != null;
+    return InkWell(
+      key: ValueKey<String>('table-$table'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: occupied ? const Color(0xff3a2419) : const Color(0xff20242f),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: occupied ? const Color(0xffff7a1a) : Colors.white10,
+            width: occupied ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  occupied ? Icons.event_seat : Icons.table_bar,
+                  color: occupied ? const Color(0xffff9f43) : Colors.white54,
+                ),
+                const Spacer(),
+                _StatusDot(occupied: occupied),
+              ],
+            ),
+            const Spacer(),
+            Text(table,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            if (occupied) ...[
+              Text('Waiter ${order!.serverName}',
+                  style: const TextStyle(color: Colors.white70)),
+              Text(_money(order!.total),
+                  style: const TextStyle(
+                      color: Color(0xffff9f43), fontWeight: FontWeight.w800)),
+            ] else
+              const Text('Libre', style: TextStyle(color: Colors.white54)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenOrdersPanel extends StatelessWidget {
+  const _OpenOrdersPanel({Key? key, required this.controller})
+      : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final orders = controller.unpaidOrders;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Commandes en cours',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text('Recuperer une order pas payee',
+              style: TextStyle(color: Colors.white60)),
+          const SizedBox(height: 14),
+          Expanded(
+            child: orders.isEmpty
+                ? const _EmptyState(
+                    icon: Icons.receipt_long,
+                    title: 'Aucune commande',
+                    message: 'Les tickets impayes apparaitront ici.',
+                  )
+                : ListView.separated(
+                    itemCount: orders.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final order = orders[index];
+                      return InkWell(
+                        key: ValueKey<String>('open-order-${order.id}'),
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => controller.openOrder(order),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xff252936),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(child: _OrderSummary(order: order)),
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderEntryWorkspace extends StatelessWidget {
+  const _OrderEntryWorkspace({Key? key, required this.controller})
+      : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final order = controller.activeOrder;
+    if (order == null) {
+      return _FloorWorkspace(controller: controller);
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(width: 190, child: _CategoryColumn(controller: controller)),
+        const SizedBox(width: 16),
+        Expanded(
+          flex: 6,
+          child: Column(
+            children: [
+              _Header(
+                title: 'POS commande',
+                subtitle: 'Categories, produits et ticket en 3 zones',
+                trailing: _SearchBox(controller: controller),
+              ),
+              const SizedBox(height: 16),
+              Expanded(child: _MenuGrid(controller: controller)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 430,
+          child: _TicketPanel(controller: controller, order: order),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryColumn extends StatelessWidget {
+  const _CategoryColumn({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton.icon(
+            key: const ValueKey<String>('back-floor'),
+            onPressed: controller.closeEditor,
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Plan'),
+          ),
+          const SizedBox(height: 16),
+          const Text('Categories',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView.separated(
+              itemCount: controller.database.categories.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final category = controller.database.categories[index];
+                final active = category.id == controller.selectedCategoryId;
+                return InkWell(
+                  key: ValueKey<String>('category-${category.id}'),
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => controller.selectCategory(category.id),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? const Color(0xffff7a1a)
+                          : const Color(0xff252936),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(category.icon),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(category.name)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuGrid extends StatelessWidget {
+  const _MenuGrid({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = controller.filteredMenu;
+    if (items.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.search_off,
+        title: 'Aucun article',
+        message: 'Changez de categorie ou de recherche.',
+      );
+    }
+
+    return GridView.builder(
+      key: const ValueKey<String>('product-grid'),
+      itemCount: items.length,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 250,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.92,
+      ),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return InkWell(
+          key: ValueKey<String>('item-${item.id}'),
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => controller.addItem(item),
+          child: _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [item.color, item.color.withOpacity(0.55)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(item.icon, size: 54, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text(item.station,
+                    style: const TextStyle(color: Colors.white54)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(_money(item.price),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xffff9f43))),
+                    ),
+                    const Icon(Icons.add_circle, color: Color(0xff22c55e)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TicketPanel extends StatelessWidget {
+  const _TicketPanel({
+    Key? key,
+    required this.controller,
+    required this.order,
+  }) : super(key: key);
+
+  final RestaurantController controller;
+  final RestaurantOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_orderTypeName(order.type).toUpperCase(),
+                        style: const TextStyle(
+                            color: Color(0xffff9f43),
+                            fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 5),
+                    Text(order.title,
+                        style: const TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.w900)),
+                    Text(
+                        'Waiter ${order.serverName} - ${_statusName(order.status)}',
+                        style: const TextStyle(color: Colors.white60)),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Retour plan',
+                onPressed: controller.closeEditor,
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white10, height: 26),
+          const _TicketHeader(),
+          const Divider(color: Colors.white10),
+          Expanded(
+            child: order.lines.isEmpty
+                ? const _EmptyState(
+                    icon: Icons.receipt_long,
+                    title: 'Ticket vide',
+                    message: 'Touchez un produit pour ajouter.',
+                  )
+                : ListView.separated(
+                    itemCount: order.lines.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: Colors.white10),
+                    itemBuilder: (context, index) {
+                      final line = order.lines[index];
+                      return _TicketLine(
+                        line: line,
+                        onMinus: () => controller.decreaseItem(line),
+                        onPlus: () => controller.addItem(line.item),
+                      );
+                    },
+                  ),
+          ),
+          const Divider(color: Colors.white10),
+          _AmountRow(label: 'Sous-total', value: _money(order.subtotal)),
+          if (order.discountRate > 0)
+            _AmountRow(
+                label: 'Remise 10%', value: '-${_money(order.discount)}'),
+          _AmountRow(label: 'Taxe 10%', value: _money(order.tax)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xffff7a1a),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text('TOTAL',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                ),
+                Text(_money(order.total),
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ActionButton(
+                keyName: 'send-kitchen',
+                label: 'Cuisine',
+                icon: Icons.print,
+                onTap: controller.sendActiveToKitchen,
+              ),
+              _ActionButton(
+                keyName: 'discount',
+                label: 'Remise',
+                icon: Icons.percent,
+                onTap: controller.applyDiscount,
+              ),
+              _ActionButton(
+                keyName: 'transfer',
+                label: 'Transfer',
+                icon: Icons.swap_horiz,
+                onTap: controller.transferTable,
+              ),
+              _ActionButton(
+                keyName: 'bill',
+                label: 'Addition',
+                icon: Icons.receipt,
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Addition prete a imprimer')),
+                ),
+              ),
+              _ActionButton(
+                keyName: 'qty',
+                label: 'Qte',
+                icon: Icons.add,
+                onTap: controller.increaseLastLine,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: const ValueKey<String>('open-payment'),
+            onPressed: order.lines.isEmpty
+                ? null
+                : () => _showPaymentDialog(context, controller, order),
+            icon: const Icon(Icons.payments),
+            label: const Text('Payment'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TicketHeader extends StatelessWidget {
+  const _TicketHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Expanded(flex: 4, child: Text('Article')),
+        Expanded(child: Center(child: Text('Qte'))),
+        Expanded(
+            child:
+                Align(alignment: Alignment.centerRight, child: Text('Prix'))),
+        Expanded(
+            child:
+                Align(alignment: Alignment.centerRight, child: Text('Total'))),
+      ],
+    );
+  }
+}
+
+class _TicketLine extends StatelessWidget {
+  const _TicketLine({
+    Key? key,
+    required this.line,
+    required this.onMinus,
+    required this.onPlus,
+  }) : super(key: key);
+
+  final OrderLine line;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Text(line.item.name,
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              InkWell(
+                  onTap: onMinus, child: const Icon(Icons.remove, size: 14)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text('${line.quantity}'),
+              ),
+              InkWell(onTap: onPlus, child: const Icon(Icons.add, size: 14)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(_money(line.item.price)),
+          ),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(_money(line.total)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    Key? key,
+    required this.keyName,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  }) : super(key: key);
+
+  final String keyName;
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 124,
+      child: OutlinedButton.icon(
+        key: ValueKey<String>(keyName),
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+      ),
     );
   }
 }
@@ -811,8 +1472,8 @@ class _KitchenWorkspace extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _Header(
-          title: 'Cuisine & impression KOT',
-          subtitle: 'Tickets par station, pret a imprimer ou bump cuisine',
+          title: 'Cuisine & KOT',
+          subtitle: 'Tickets envoyes depuis les tables, emporter et livraison',
         ),
         const SizedBox(height: 18),
         Expanded(
@@ -820,17 +1481,17 @@ class _KitchenWorkspace extends StatelessWidget {
               ? const _EmptyState(
                   icon: Icons.soup_kitchen,
                   title: 'Aucun ticket cuisine',
-                  message:
-                      'Les nouvelles commandes apparaitront ici apres envoi.',
+                  message: 'Les nouvelles commandes apparaitront ici.',
                 )
               : GridView.count(
                   crossAxisCount: 3,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                   childAspectRatio: 0.86,
-                  children: orders.map((order) {
-                    return _KitchenTicket(controller: controller, order: order);
-                  }).toList(),
+                  children: orders
+                      .map((order) =>
+                          _KitchenTicket(controller: controller, order: order))
+                      .toList(),
                 ),
         ),
       ],
@@ -838,59 +1499,59 @@ class _KitchenWorkspace extends StatelessWidget {
   }
 }
 
-class _PaymentWorkspace extends StatelessWidget {
-  const _PaymentWorkspace({Key? key, required this.controller})
-      : super(key: key);
+class _KitchenTicket extends StatelessWidget {
+  const _KitchenTicket({
+    Key? key,
+    required this.controller,
+    required this.order,
+  }) : super(key: key);
 
   final RestaurantController controller;
+  final RestaurantOrder order;
 
   @override
   Widget build(BuildContext context) {
-    final orders = controller.payableOrders;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Header(
-          title: 'Paiement & caisse',
-          subtitle: 'Encaissement cash, carte ou mobile avec cloture ticket',
-        ),
-        const SizedBox(height: 18),
-        _PaymentMethods(controller: controller),
-        const SizedBox(height: 18),
-        Expanded(
-          child: orders.isEmpty
-              ? const _EmptyState(
-                  icon: Icons.payments,
-                  title: 'Aucune note a encaisser',
-                  message: 'Envoyez une commande ou marquez un ticket pret.',
-                )
-              : ListView.separated(
-                  itemCount: orders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    return _Card(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _OrderSummary(order: order),
-                          const SizedBox(height: 14),
-                          FilledButton.icon(
-                            key: ValueKey<String>('pay-${order.id}'),
-                            onPressed: () => controller.settleOrder(
-                              order,
-                              controller.selectedPaymentMethod,
-                            ),
-                            icon: const Icon(Icons.receipt_long),
-                            label: Text('Encaisser - ${_money(order.total)}'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(order.id,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800)),
+              ),
+              _StatusPill(status: order.status),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('${order.title} - ${order.serverName}',
+              style: const TextStyle(color: Colors.white60)),
+          const Divider(color: Colors.white10, height: 24),
+          Expanded(
+            child: ListView(
+              children: order.lines
+                  .map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                          '${line.quantity}x ${line.item.name}  [${line.item.station}]'),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          FilledButton.icon(
+            key: ValueKey<String>('ready-${order.id}'),
+            onPressed: order.status == OrderStatus.ready
+                ? null
+                : () => controller.markReady(order),
+            icon: const Icon(Icons.done_all),
+            label: const Text('Marquer pret'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -909,7 +1570,7 @@ class _PatronWorkspace extends StatelessWidget {
       children: [
         const _Header(
           title: 'Application patron',
-          subtitle: 'Statistiques, rapports journaliers et performance service',
+          subtitle: 'Statistiques, rapports journaliers et commandes ouvertes',
         ),
         const SizedBox(height: 18),
         Row(
@@ -918,7 +1579,7 @@ class _PatronWorkspace extends StatelessWidget {
                 child: _MetricCard(
                     title: 'Chiffre du jour',
                     value: _money(report.grossSales),
-                    icon: Icons.euro)),
+                    icon: Icons.payments)),
             const SizedBox(width: 14),
             Expanded(
                 child: _MetricCard(
@@ -976,7 +1637,7 @@ class _PatronWorkspace extends StatelessWidget {
                     empty: 'Tout est solde.',
                     rows: report.openOrders
                         .map((order) =>
-                            '${order.id}  ${order.tableName}  ${_statusName(order.status)}')
+                            '${order.id}  ${order.title}  ${_statusName(order.status)}')
                         .toList(),
                   ),
                 ),
@@ -1002,8 +1663,7 @@ class _SettingsWorkspace extends StatelessWidget {
       children: [
         const _Header(
           title: 'Reglages backend local',
-          subtitle:
-              'Premiere BDD locale en memoire, prete a remplacer par SQLite/Supabase',
+          subtitle: 'BDD locale en memoire, prete pour SQLite/Supabase',
         ),
         const SizedBox(height: 18),
         Expanded(
@@ -1015,26 +1675,267 @@ class _SettingsWorkspace extends StatelessWidget {
             children: const [
               _SettingsTile(
                 icon: Icons.storage,
-                title: 'BDD locale',
+                title: 'Orders impayes',
                 body:
-                    'Repository local avec categories, menu, commandes et ventes seed.',
+                    'Les commandes ouvertes restent recuperables depuis le plan de salle.',
               ),
               _SettingsTile(
                 icon: Icons.print,
-                title: 'Imprimantes cuisine',
+                title: 'Cuisine',
                 body:
-                    'File KOT structuree par station: Grill, Bar, Cuisine, Patisserie.',
+                    'Le bouton Cuisine envoie le KOT puis revient au plan de tables.',
               ),
               _SettingsTile(
-                icon: Icons.security,
-                title: 'Roles',
+                icon: Icons.payments,
+                title: 'Paiement MAD',
                 body:
-                    'Espaces separes pour POS, serveur, cuisine, caisse et patron.',
+                    'Popup avec cash/carte/mobile, numpad, billets rapides et rendu.',
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PaymentDialog extends StatefulWidget {
+  const _PaymentDialog({
+    Key? key,
+    required this.controller,
+    required this.order,
+  }) : super(key: key);
+
+  final RestaurantController controller;
+  final RestaurantOrder order;
+
+  @override
+  State<_PaymentDialog> createState() => _PaymentDialogState();
+}
+
+class _PaymentDialogState extends State<_PaymentDialog> {
+  PaymentMethod method = PaymentMethod.cash;
+  String amountText = '';
+
+  double get paidAmount => double.tryParse(amountText) ?? 0;
+  double get change => paidAmount - widget.order.total;
+
+  @override
+  void initState() {
+    super.initState();
+    amountText = widget.order.total.toStringAsFixed(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canPay = paidAmount >= widget.order.total;
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Paiement ${widget.order.title}',
+                        style: const TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    _AmountRow(
+                        label: 'Total a payer',
+                        value: _money(widget.order.total),
+                        strong: true),
+                    _AmountRow(
+                        label: 'Montant donne',
+                        value: _money(paidAmount),
+                        strong: true),
+                    _AmountRow(
+                        label: 'Rendu',
+                        value: _money(change < 0 ? 0 : change),
+                        strong: true),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      children: PaymentMethod.values.map((entry) {
+                        return ChoiceChip(
+                          key: ValueKey<String>('dialog-method-${entry.name}'),
+                          selected: method == entry,
+                          label: Text(_paymentName(entry)),
+                          onSelected: (_) {
+                            setState(() {
+                              method = entry;
+                              if (entry != PaymentMethod.cash) {
+                                amountText =
+                                    widget.order.total.toStringAsFixed(0);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Billets rapides Maroc',
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [20, 50, 100, 200].map((bill) {
+                        return _BillButton(
+                          value: bill,
+                          onTap: () => setState(() {
+                            amountText = (paidAmount + bill).toStringAsFixed(0);
+                          }),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
+                    FilledButton.icon(
+                      key: const ValueKey<String>('confirm-payment'),
+                      onPressed: canPay
+                          ? () {
+                              widget.controller
+                                  .payOrder(widget.order, method, paidAmount);
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      icon: const Icon(Icons.check_circle),
+                      label: const Text('Valider paiement et liberer table'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              SizedBox(
+                width: 260,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff111318),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        amountText.isEmpty ? '0' : amountText,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                            fontSize: 32, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _Numpad(
+                      onTap: (value) => setState(() {
+                        if (value == 'C') {
+                          amountText = '';
+                        } else if (value == '<') {
+                          if (amountText.isNotEmpty) {
+                            amountText =
+                                amountText.substring(0, amountText.length - 1);
+                          }
+                        } else if (value == '.') {
+                          if (!amountText.contains('.')) {
+                            amountText =
+                                amountText.isEmpty ? '0.' : '$amountText.';
+                          }
+                        } else {
+                          amountText =
+                              amountText == '0' ? value : '$amountText$value';
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showPaymentDialog(
+  BuildContext context,
+  RestaurantController controller,
+  RestaurantOrder order,
+) {
+  showDialog<void>(
+    context: context,
+    builder: (_) => _PaymentDialog(controller: controller, order: order),
+  );
+}
+
+class _BillButton extends StatelessWidget {
+  const _BillButton({
+    Key? key,
+    required this.value,
+    required this.onTap,
+  }) : super(key: key);
+
+  final int value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: ValueKey<String>('bill-$value'),
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: 126,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xff15803d), Color(0xff22c55e)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.payments, size: 20),
+            const SizedBox(width: 6),
+            Text('$value MAD',
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Numpad extends StatelessWidget {
+  const _Numpad({Key? key, required this.onTap}) : super(key: key);
+
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const keys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'];
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 3,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.5,
+      children: keys.map((keyText) {
+        return FilledButton.tonal(
+          key: ValueKey<String>('numpad-$keyText'),
+          onPressed: () => onTap(keyText),
+          child: Text(keyText,
+              style:
+                  const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        );
+      }).toList(),
     );
   }
 }
@@ -1089,7 +1990,7 @@ class _SearchBox extends StatelessWidget {
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xff1d2029),
-        hintText: 'Rechercher menu...',
+        hintText: 'Rechercher produit...',
         prefixIcon: const Icon(Icons.search),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
@@ -1111,6 +2012,7 @@ class _ServerSelector extends StatelessWidget {
       value: controller.selectedServer,
       decoration: InputDecoration(
         filled: true,
+        labelText: 'Waiter',
         fillColor: const Color(0xff1d2029),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
@@ -1120,7 +2022,7 @@ class _ServerSelector extends StatelessWidget {
       items: controller.servers
           .map((server) => DropdownMenuItem<String>(
                 value: server,
-                child: Text('Serveur $server'),
+                child: Text(server),
               ))
           .toList(),
       onChanged: (server) {
@@ -1128,338 +2030,6 @@ class _ServerSelector extends StatelessWidget {
           controller.selectServer(server);
         }
       },
-    );
-  }
-}
-
-class _CategoryTabs extends StatelessWidget {
-  const _CategoryTabs({Key? key, required this.controller}) : super(key: key);
-
-  final RestaurantController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 74,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: controller.database.categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final category = controller.database.categories[index];
-          final active = category.id == controller.selectedCategoryId;
-          return ChoiceChip(
-            key: ValueKey<String>('category-${category.id}'),
-            selected: active,
-            avatar: Icon(category.icon, size: 18),
-            label: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-              child: Text(category.name),
-            ),
-            onSelected: (_) => controller.selectCategory(category.id),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _MenuGrid extends StatelessWidget {
-  const _MenuGrid({Key? key, required this.controller}) : super(key: key);
-
-  final RestaurantController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = controller.filteredMenu;
-    if (items.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.search_off,
-        title: 'Aucun article',
-        message: 'Changez de categorie ou de recherche.',
-      );
-    }
-
-    return GridView.builder(
-      key: const ValueKey<String>('menu-grid'),
-      itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 1.05,
-      ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return InkWell(
-          key: ValueKey<String>('item-${item.id}'),
-          borderRadius: BorderRadius.circular(22),
-          onTap: () => controller.addItem(item),
-          child: _Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 72,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [item.color, item.color.withOpacity(0.55)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Center(
-                    child: Icon(Icons.restaurant,
-                        color: Colors.white.withOpacity(0.9), size: 34),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Text(item.station,
-                    style: const TextStyle(color: Colors.white54)),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(_money(item.price),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xffff9f43))),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.add_circle, color: Color(0xff22c55e)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _OrderPanel extends StatelessWidget {
-  const _OrderPanel({
-    Key? key,
-    required this.controller,
-    this.compact = false,
-  }) : super(key: key);
-
-  final RestaurantController controller;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Commande active',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w800)),
-                    Text(
-                        '${controller.selectedTable} - ${controller.selectedServer}',
-                        style: const TextStyle(color: Colors.white60)),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Vider',
-                onPressed: controller.clearDraft,
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: controller.draftLines.isEmpty
-                ? const _EmptyState(
-                    icon: Icons.shopping_basket,
-                    title: 'Panier vide',
-                    message: 'Touchez un article pour commencer.',
-                  )
-                : ListView.separated(
-                    itemCount: controller.draftLines.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: Colors.white10),
-                    itemBuilder: (context, index) {
-                      final line = controller.draftLines[index];
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(line.item.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w700)),
-                                Text(
-                                    '${line.item.station} - ${_money(line.item.price)}',
-                                    style:
-                                        const TextStyle(color: Colors.white54)),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            key: ValueKey<String>('decrease-${line.item.id}'),
-                            onPressed: () => controller.decreaseItem(line),
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text('${line.quantity}'),
-                          IconButton(
-                            key: ValueKey<String>('increase-${line.item.id}'),
-                            onPressed: () => controller.addItem(line.item),
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
-          const Divider(color: Colors.white10),
-          _AmountRow(
-              label: 'Sous-total', value: _money(controller.draftSubtotal)),
-          _AmountRow(label: 'Taxe 10%', value: _money(controller.draftTax)),
-          _AmountRow(
-              label: 'Total',
-              value: _money(controller.draftTotal),
-              strong: true),
-          const SizedBox(height: 14),
-          _PaymentMethods(controller: controller, dense: true),
-          const SizedBox(height: 14),
-          _PrimaryActionBar(controller: controller, compact: compact),
-        ],
-      ),
-    );
-  }
-}
-
-class _PrimaryActionBar extends StatelessWidget {
-  const _PrimaryActionBar({
-    Key? key,
-    required this.controller,
-    this.compact = false,
-  }) : super(key: key);
-
-  final RestaurantController controller;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasLines = controller.draftLines.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton.icon(
-          key: const ValueKey<String>('send-kitchen'),
-          onPressed: hasLines ? controller.sendDraftToKitchen : null,
-          icon: const Icon(Icons.print),
-          label: const Text('Envoyer cuisine'),
-        ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          key: const ValueKey<String>('pay-now'),
-          onPressed: hasLines ? controller.payDraftNow : null,
-          icon: const Icon(Icons.payments),
-          label: const Text('Paiement direct'),
-        ),
-      ],
-    );
-  }
-}
-
-class _KitchenTicket extends StatelessWidget {
-  const _KitchenTicket({
-    Key? key,
-    required this.controller,
-    required this.order,
-  }) : super(key: key);
-
-  final RestaurantController controller;
-  final RestaurantOrder order;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(order.id,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w800)),
-              ),
-              _StatusPill(status: order.status),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('${order.tableName} - ${order.serverName}',
-              style: const TextStyle(color: Colors.white60)),
-          const Divider(color: Colors.white10, height: 24),
-          Expanded(
-            child: ListView(
-              children: order.lines
-                  .map((line) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                            '${line.quantity}x ${line.item.name}  [${line.item.station}]'),
-                      ))
-                  .toList(),
-            ),
-          ),
-          FilledButton.icon(
-            key: ValueKey<String>('ready-${order.id}'),
-            onPressed: order.status == OrderStatus.ready
-                ? null
-                : () => controller.markReady(order),
-            icon: const Icon(Icons.done_all),
-            label: const Text('Marquer pret'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentMethods extends StatelessWidget {
-  const _PaymentMethods({
-    Key? key,
-    required this.controller,
-    this.dense = false,
-  }) : super(key: key);
-
-  final RestaurantController controller;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: PaymentMethod.values.map((method) {
-        final active = controller.selectedPaymentMethod == method;
-        return ChoiceChip(
-          key: ValueKey<String>('payment-${method.name}'),
-          selected: active,
-          label: Text(_paymentName(method)),
-          onSelected: (_) => controller.selectPaymentMethod(method),
-        );
-      }).toList(),
     );
   }
 }
@@ -1476,19 +2046,22 @@ class _OrderSummary extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(order.id,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(width: 10),
+            Expanded(
+              child: Text(order.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w800)),
+            ),
             _StatusPill(status: order.status),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-            '${order.tableName} - ${order.serverName} - ${order.itemCount} articles',
+            '${order.id} - ${_orderTypeName(order.type)} - ${order.serverName}',
             style: const TextStyle(color: Colors.white60)),
         const SizedBox(height: 6),
-        Text(_money(order.total),
+        Text('${order.itemCount} articles - ${_money(order.total)}',
             style: const TextStyle(
                 color: Color(0xffff9f43), fontWeight: FontWeight.w800)),
       ],
@@ -1632,6 +2205,24 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
+class _StatusDot extends StatelessWidget {
+  const _StatusDot({Key? key, required this.occupied}) : super(key: key);
+
+  final bool occupied;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: occupied ? const Color(0xffef4444) : const Color(0xff22c55e),
+      ),
+    );
+  }
+}
+
 class _AmountRow extends StatelessWidget {
   const _AmountRow({
     Key? key,
@@ -1718,7 +2309,18 @@ class _EmptyState extends StatelessWidget {
 }
 
 String _money(double value) {
-  return '${value.toStringAsFixed(2)} EUR';
+  return '${value.toStringAsFixed(2)} MAD';
+}
+
+String _orderTypeName(OrderType type) {
+  switch (type) {
+    case OrderType.dineIn:
+      return 'A table';
+    case OrderType.takeaway:
+      return 'Emporter';
+    case OrderType.delivery:
+      return 'Livraison';
+  }
 }
 
 String _paymentName(PaymentMethod method) {

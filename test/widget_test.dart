@@ -15,39 +15,49 @@ void main() {
     binding.window.clearDevicePixelRatioTestValue();
   });
 
-  testWidgets('renders the desktop POS workflow shell',
+  testWidgets('renders the floor plan as default POS screen',
       (WidgetTester tester) async {
     await tester.pumpWidget(const RestaurantApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Comptoir desktop POS'), findsOneWidget);
-    expect(find.text('Commande active'), findsOneWidget);
-    expect(find.text('Classic Burger'), findsOneWidget);
+    expect(find.text('Plan de salle'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('start-takeaway')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('start-delivery')), findsOneWidget);
+    expect(find.text('Commandes en cours'), findsOneWidget);
     expect(find.text('Application patron'), findsNothing);
   });
 
-  testWidgets('adds an item and sends it to kitchen',
+  testWidgets('opens a table order and sends it back to the floor plan',
       (WidgetTester tester) async {
     final controller = RestaurantController();
 
     await tester.pumpWidget(RestaurantApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey<String>('item-classic-burger')));
+    await tester.tap(find.byKey(const ValueKey<String>('table-Table 1')));
     await tester.pumpAndSettle();
 
-    expect(controller.draftLines.length, 1);
-    expect(find.text('9.79 EUR'), findsOneWidget);
+    expect(find.text('POS commande'), findsOneWidget);
+    expect(find.text('Table 1'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('item-tacos-poulet')));
+    await tester.pumpAndSettle();
+
+    expect(controller.activeOrder!.lines.length, 1);
+    expect(find.text('46.20 MAD'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('send-kitchen')));
     await tester.pumpAndSettle();
 
-    expect(controller.draftLines, isEmpty);
-    expect(controller.orders.first.status, OrderStatus.sentToKitchen);
-    expect(controller.orders.first.tableName, 'Table 1');
+    expect(controller.activeOrder, isNull);
+    expect(find.text('Plan de salle'), findsOneWidget);
+    expect(controller.occupiedOrderForTable('Table 1')!.status,
+        OrderStatus.sentToKitchen);
   });
 
-  testWidgets('patron report updates after direct payment',
+  testWidgets('payment frees the table and updates patron reports',
       (WidgetTester tester) async {
     final controller = RestaurantController();
 
@@ -56,12 +66,23 @@ void main() {
 
     final initialPaidOrders = controller.report.paidOrders.length;
 
-    await tester.tap(find.byKey(const ValueKey<String>('item-double-cheese')));
+    await tester.tap(find.byKey(const ValueKey<String>('table-Table 2')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('pay-now')));
+    await tester.tap(find.byKey(const ValueKey<String>('item-burger-maison')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('open-payment')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paiement Table 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('bill-100')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('confirm-payment')));
     await tester.pumpAndSettle();
 
     expect(controller.report.paidOrders.length, initialPaidOrders + 1);
+    expect(controller.occupiedOrderForTable('Table 2'), isNull);
+    expect(find.text('Plan de salle'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('nav-patron')));
     await tester.pumpAndSettle();
