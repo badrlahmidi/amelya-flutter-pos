@@ -2162,47 +2162,59 @@ class _PatronWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final report = controller.report;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Header(
-          title: 'Application patron',
-          subtitle: 'Statistiques, rapports journaliers et commandes ouvertes',
-        ),
-        const SizedBox(height: 18),
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final metricColumns = width >= 1120
+            ? 4
+            : width >= 760
+                ? 2
+                : 1;
+        final reportColumns = width >= 980 ? 3 : 1;
+        return ListView(
           children: [
-            Expanded(
-                child: _MetricCard(
+            const _Header(
+              title: 'Application patron',
+              subtitle:
+                  'Statistiques, rapports journaliers et commandes ouvertes',
+            ),
+            const SizedBox(height: 18),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: metricColumns,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: metricColumns == 1 ? 3 : 1.75,
+              children: [
+                _MetricCard(
                     title: 'Chiffre du jour',
                     value: _money(report.grossSales),
-                    icon: Icons.payments)),
-            const SizedBox(width: 14),
-            Expanded(
-                child: _MetricCard(
+                    icon: Icons.payments),
+                _MetricCard(
                     title: 'Taxes',
                     value: _money(report.taxCollected),
-                    icon: Icons.account_balance)),
-            const SizedBox(width: 14),
-            Expanded(
-                child: _MetricCard(
+                    icon: Icons.account_balance),
+                _MetricCard(
                     title: 'Tickets payes',
                     value: '${report.paidOrders.length}',
-                    icon: Icons.receipt)),
-            const SizedBox(width: 14),
-            Expanded(
-                child: _MetricCard(
+                    icon: Icons.receipt),
+                _MetricCard(
                     title: 'Commandes ouvertes',
                     value: '${report.openOrders.length}',
-                    icon: Icons.pending_actions)),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _Card(
+                    icon: Icons.pending_actions),
+              ],
+            ),
+            const SizedBox(height: 18),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: reportColumns,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: reportColumns == 1 ? 2.2 : 1.05,
+              children: [
+                _Card(
                   child: _ReportList(
                     title: 'Top articles',
                     empty: 'Aucune vente article.',
@@ -2212,10 +2224,7 @@ class _PatronWorkspace extends StatelessWidget {
                         .toList(),
                   ),
                 ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: _Card(
+                _Card(
                   child: _ReportList(
                     title: 'Paiements',
                     empty: 'Aucun paiement.',
@@ -2225,10 +2234,7 @@ class _PatronWorkspace extends StatelessWidget {
                         .toList(),
                   ),
                 ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: _Card(
+                _Card(
                   child: _ReportList(
                     title: 'Tickets ouverts',
                     empty: 'Tout est solde.',
@@ -2238,11 +2244,11 @@ class _PatronWorkspace extends StatelessWidget {
                         .toList(),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
