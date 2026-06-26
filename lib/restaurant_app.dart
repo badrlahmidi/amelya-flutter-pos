@@ -902,45 +902,58 @@ class _ModuleHubPage extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 4,
-                mainAxisSpacing: 18,
-                crossAxisSpacing: 18,
-                childAspectRatio: 0.95,
-                children: [
-                  _ModuleTile(
-                    keyName: 'module-pos',
-                    title: 'Point de vente',
-                    subtitle: 'Plan tables, commande, paiement',
-                    icon: Icons.point_of_sale,
-                    color: const Color(0xffff7a1a),
-                    onTap: () => controller.openModule(AppRoute.pointOfSale),
-                  ),
-                  _ModuleTile(
-                    keyName: 'module-menu-stock',
-                    title: 'Menu et stock',
-                    subtitle: 'Categories, produits, stock',
-                    icon: Icons.inventory_2,
-                    color: const Color(0xff22c55e),
-                    onTap: () => controller.openModule(AppRoute.menuStock),
-                  ),
-                  _ModuleTile(
-                    keyName: 'module-reports',
-                    title: 'Rapports',
-                    subtitle: 'Ventes, paiements, articles',
-                    icon: Icons.query_stats,
-                    color: const Color(0xff38bdf8),
-                    onTap: () => controller.openModule(AppRoute.reports),
-                  ),
-                  _ModuleTile(
-                    keyName: 'module-settings',
-                    title: 'Parametrage',
-                    subtitle: 'Restaurant, taxes, utilisateurs',
-                    icon: Icons.settings,
-                    color: const Color(0xffa855f7),
-                    onTap: () => controller.openModule(AppRoute.settings),
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final columns = width >= 1180
+                      ? 4
+                      : width >= 860
+                          ? 3
+                          : width >= 560
+                              ? 2
+                              : 1;
+                  return GridView.count(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 18,
+                    crossAxisSpacing: 18,
+                    childAspectRatio: 1.05,
+                    children: [
+                      _ModuleTile(
+                        keyName: 'module-pos',
+                        title: 'Point de vente',
+                        subtitle: 'Plan tables, commande, paiement',
+                        icon: Icons.point_of_sale,
+                        color: const Color(0xffff7a1a),
+                        onTap: () =>
+                            controller.openModule(AppRoute.pointOfSale),
+                      ),
+                      _ModuleTile(
+                        keyName: 'module-menu-stock',
+                        title: 'Menu et stock',
+                        subtitle: 'Categories, produits, stock',
+                        icon: Icons.inventory_2,
+                        color: const Color(0xff22c55e),
+                        onTap: () => controller.openModule(AppRoute.menuStock),
+                      ),
+                      _ModuleTile(
+                        keyName: 'module-reports',
+                        title: 'Rapports',
+                        subtitle: 'Ventes, paiements, articles',
+                        icon: Icons.query_stats,
+                        color: const Color(0xff38bdf8),
+                        onTap: () => controller.openModule(AppRoute.reports),
+                      ),
+                      _ModuleTile(
+                        keyName: 'module-settings',
+                        title: 'Parametrage',
+                        subtitle: 'Restaurant, taxes, utilisateurs',
+                        icon: Icons.settings,
+                        color: const Color(0xffa855f7),
+                        onTap: () => controller.openModule(AppRoute.settings),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
