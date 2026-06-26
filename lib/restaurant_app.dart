@@ -7,6 +7,26 @@ enum AppWorkspace {
   settings,
 }
 
+enum AppRoute {
+  login,
+  hub,
+  pointOfSale,
+  menuStock,
+  reports,
+  settings,
+}
+
+enum ManagementSection {
+  categories,
+  products,
+  notes,
+  modifiers,
+  ingredients,
+  stock,
+  inventory,
+  suppliers,
+}
+
 enum OrderType {
   dineIn,
   takeaway,
@@ -381,7 +401,9 @@ class RestaurantController extends ChangeNotifier {
   ];
   final List<String> servers = const ['Mina', 'Leo', 'Sara', 'Nora'];
 
+  AppRoute _route = AppRoute.login;
   AppWorkspace _workspace = AppWorkspace.floor;
+  ManagementSection _managementSection = ManagementSection.categories;
   String _selectedCategoryId = '';
   String _selectedServer = 'Mina';
   String _search = '';
@@ -391,7 +413,9 @@ class RestaurantController extends ChangeNotifier {
   int _nextDeliveryNumber = 4;
   String? _activeOrderId;
 
+  AppRoute get route => _route;
   AppWorkspace get workspace => _workspace;
+  ManagementSection get managementSection => _managementSection;
   String get selectedCategoryId => _selectedCategoryId;
   String get selectedServer => _selectedServer;
   String get search => _search;
@@ -469,6 +493,39 @@ class RestaurantController extends ChangeNotifier {
               order?.type == OrderType.dineIn && order?.tableName == table,
           orElse: () => null,
         );
+  }
+
+  void login() {
+    _route = AppRoute.hub;
+    _activeOrderId = null;
+    notifyListeners();
+  }
+
+  void logout() {
+    _route = AppRoute.login;
+    _activeOrderId = null;
+    notifyListeners();
+  }
+
+  void openModule(AppRoute route) {
+    _route = route;
+    _activeOrderId = null;
+    _managementSection = ManagementSection.categories;
+    if (route == AppRoute.pointOfSale) {
+      _workspace = AppWorkspace.floor;
+    }
+    notifyListeners();
+  }
+
+  void goToHub() {
+    _route = AppRoute.hub;
+    _activeOrderId = null;
+    notifyListeners();
+  }
+
+  void selectManagementSection(ManagementSection section) {
+    _managementSection = section;
+    notifyListeners();
   }
 
   void selectWorkspace(AppWorkspace workspace) {
@@ -706,15 +763,251 @@ class _RestaurantAppState extends State<RestaurantApp> {
               background: Color(0xff111318),
             ),
           ),
-          home: _RestaurantShell(controller: controller),
+          home: _AppRouter(controller: controller),
         );
       },
     );
   }
 }
 
-class _RestaurantShell extends StatelessWidget {
-  const _RestaurantShell({Key? key, required this.controller})
+class _AppRouter extends StatelessWidget {
+  const _AppRouter({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (controller.route) {
+      case AppRoute.login:
+        return _LoginPage(controller: controller);
+      case AppRoute.hub:
+        return _ModuleHubPage(controller: controller);
+      case AppRoute.pointOfSale:
+        return _PosFullscreenShell(controller: controller);
+      case AppRoute.menuStock:
+        return _MenuStockShell(controller: controller);
+      case AppRoute.reports:
+        return _ReportsShell(controller: controller);
+      case AppRoute.settings:
+        return _SettingsShell(controller: controller);
+    }
+  }
+}
+
+class _LoginPage extends StatelessWidget {
+  const _LoginPage({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 460,
+          child: _Card(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffff7a1a),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: const Icon(Icons.restaurant_menu,
+                      color: Colors.white, size: 34),
+                ),
+                const SizedBox(height: 22),
+                const Text('Connexion POS Pro',
+                    style:
+                        TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                const Text('Connectez-vous pour choisir votre module.',
+                    style: TextStyle(color: Colors.white60)),
+                const SizedBox(height: 22),
+                TextField(
+                  key: const ValueKey<String>('login-user'),
+                  decoration: InputDecoration(
+                    filled: true,
+                    labelText: 'Utilisateur',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const ValueKey<String>('login-pin'),
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    filled: true,
+                    labelText: 'PIN',
+                    prefixIcon: const Icon(Icons.lock),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  key: const ValueKey<String>('login-submit'),
+                  onPressed: controller.login,
+                  icon: const Icon(Icons.login),
+                  label: const Text('Entrer'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleHubPage extends StatelessWidget {
+  const _ModuleHubPage({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: _Header(
+                    title: 'Choisir un module',
+                    subtitle:
+                        'Point de vente plein ecran ou back-office avec sidebar locale',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('logout'),
+                  onPressed: controller.logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 4,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: 18,
+                childAspectRatio: 0.95,
+                children: [
+                  _ModuleTile(
+                    keyName: 'module-pos',
+                    title: 'Point de vente',
+                    subtitle: 'Plan tables, commande, paiement',
+                    icon: Icons.point_of_sale,
+                    color: const Color(0xffff7a1a),
+                    onTap: () => controller.openModule(AppRoute.pointOfSale),
+                  ),
+                  _ModuleTile(
+                    keyName: 'module-menu-stock',
+                    title: 'Menu et stock',
+                    subtitle: 'Categories, produits, stock',
+                    icon: Icons.inventory_2,
+                    color: const Color(0xff22c55e),
+                    onTap: () => controller.openModule(AppRoute.menuStock),
+                  ),
+                  _ModuleTile(
+                    keyName: 'module-reports',
+                    title: 'Rapports',
+                    subtitle: 'Ventes, paiements, articles',
+                    icon: Icons.query_stats,
+                    color: const Color(0xff38bdf8),
+                    onTap: () => controller.openModule(AppRoute.reports),
+                  ),
+                  _ModuleTile(
+                    keyName: 'module-settings',
+                    title: 'Parametrage',
+                    subtitle: 'Restaurant, taxes, utilisateurs',
+                    icon: Icons.settings,
+                    color: const Color(0xffa855f7),
+                    onTap: () => controller.openModule(AppRoute.settings),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleTile extends StatelessWidget {
+  const _ModuleTile({
+    Key? key,
+    required this.keyName,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  }) : super(key: key);
+
+  final String keyName;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: ValueKey<String>(keyName),
+      borderRadius: BorderRadius.circular(28),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xff1d2029),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(icon, color: color, size: 36),
+            ),
+            const Spacer(),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text(subtitle, style: const TextStyle(color: Colors.white60)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PosFullscreenShell extends StatelessWidget {
+  const _PosFullscreenShell({Key? key, required this.controller})
       : super(key: key);
 
   final RestaurantController controller;
@@ -722,107 +1015,398 @@ class _RestaurantShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          _SideRail(controller: controller),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: _workspaceView(),
+      body: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('back-hub-from-pos'),
+                  onPressed: controller.goToHub,
+                  icon: const Icon(Icons.apps),
+                  label: const Text('Modules'),
+                ),
+                const Spacer(),
+                Text(
+                  controller.isEditingOrder
+                      ? 'Point de vente - commande'
+                      : controller.workspace == AppWorkspace.kitchen
+                          ? 'Point de vente - cuisine'
+                          : 'Point de vente - plan de salle',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.tonalIcon(
+                  key: const ValueKey<String>('pos-kitchen'),
+                  onPressed: () => controller.selectWorkspace(
+                    controller.workspace == AppWorkspace.kitchen
+                        ? AppWorkspace.floor
+                        : AppWorkspace.kitchen,
+                  ),
+                  icon: const Icon(Icons.soup_kitchen),
+                  label: Text(controller.workspace == AppWorkspace.kitchen
+                      ? 'Plan'
+                      : 'Cuisine'),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Expanded(
+              child: controller.isEditingOrder
+                  ? _OrderEntryWorkspace(controller: controller)
+                  : controller.workspace == AppWorkspace.kitchen
+                      ? _KitchenWorkspace(controller: controller)
+                      : _FloorWorkspace(controller: controller),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  Widget _workspaceView() {
-    if (controller.workspace == AppWorkspace.floor &&
-        controller.isEditingOrder) {
-      return _OrderEntryWorkspace(controller: controller);
-    }
-
-    switch (controller.workspace) {
-      case AppWorkspace.floor:
-        return _FloorWorkspace(controller: controller);
-      case AppWorkspace.kitchen:
-        return _KitchenWorkspace(controller: controller);
-      case AppWorkspace.patron:
-        return _PatronWorkspace(controller: controller);
-      case AppWorkspace.settings:
-        return _SettingsWorkspace(controller: controller);
-    }
-  }
 }
 
-class _SideRail extends StatelessWidget {
-  const _SideRail({Key? key, required this.controller}) : super(key: key);
+class _MenuStockShell extends StatelessWidget {
+  const _MenuStockShell({Key? key, required this.controller}) : super(key: key);
 
   final RestaurantController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 112,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-      color: const Color(0xff181a22),
-      child: Column(
+    return _ModuleSidebarShell(
+      controller: controller,
+      title: 'Menu et stock',
+      subtitle: 'Gestion des categories, produits, notes, modifiers et stock',
+      sections: const [
+        _ModuleSectionItem(
+          section: ManagementSection.categories,
+          label: 'Categories',
+          icon: Icons.category,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.products,
+          label: 'Produits',
+          icon: Icons.restaurant_menu,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.notes,
+          label: 'Notes',
+          icon: Icons.sticky_note_2,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.modifiers,
+          label: 'Modifiers',
+          icon: Icons.tune,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.ingredients,
+          label: 'Ingredients',
+          icon: Icons.kitchen,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.stock,
+          label: 'Stock',
+          icon: Icons.inventory,
+        ),
+      ],
+      body: _MenuStockBody(controller: controller),
+    );
+  }
+}
+
+class _ReportsShell extends StatelessWidget {
+  const _ReportsShell({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ModuleSidebarShell(
+      controller: controller,
+      title: 'Rapports',
+      subtitle: 'Suivi patron: ventes, paiements, articles et tickets ouverts',
+      sections: const [
+        _ModuleSectionItem(
+          section: ManagementSection.categories,
+          label: 'Dashboard',
+          icon: Icons.dashboard,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.products,
+          label: 'Ventes',
+          icon: Icons.trending_up,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.stock,
+          label: 'Paiements',
+          icon: Icons.payments,
+        ),
+      ],
+      body: _PatronWorkspace(controller: controller),
+    );
+  }
+}
+
+class _SettingsShell extends StatelessWidget {
+  const _SettingsShell({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ModuleSidebarShell(
+      controller: controller,
+      title: 'Parametrage',
+      subtitle: 'Configuration restaurant, taxes, imprimantes et utilisateurs',
+      sections: const [
+        _ModuleSectionItem(
+          section: ManagementSection.categories,
+          label: 'Restaurant',
+          icon: Icons.store,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.products,
+          label: 'Taxes',
+          icon: Icons.percent,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.notes,
+          label: 'Imprimantes',
+          icon: Icons.print,
+        ),
+        _ModuleSectionItem(
+          section: ManagementSection.modifiers,
+          label: 'Utilisateurs',
+          icon: Icons.group,
+        ),
+      ],
+      body: _SettingsWorkspace(controller: controller),
+    );
+  }
+}
+
+class _ModuleSectionItem {
+  const _ModuleSectionItem({
+    required this.section,
+    required this.label,
+    required this.icon,
+  });
+
+  final ManagementSection section;
+  final String label;
+  final IconData icon;
+}
+
+class _ModuleSidebarShell extends StatelessWidget {
+  const _ModuleSidebarShell({
+    Key? key,
+    required this.controller,
+    required this.title,
+    required this.subtitle,
+    required this.sections,
+    required this.body,
+  }) : super(key: key);
+
+  final RestaurantController controller;
+  final String title;
+  final String subtitle;
+  final List<_ModuleSectionItem> sections;
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xffff7a1a),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.restaurant_menu, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          const Text('POS Pro', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 28),
-          Expanded(
-            child: ListView(
+            width: 246,
+            padding: const EdgeInsets.all(18),
+            color: const Color(0xff181a22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _railItem(AppWorkspace.floor, Icons.table_restaurant, 'Salle'),
-                _railItem(AppWorkspace.kitchen, Icons.soup_kitchen, 'Cuisine'),
-                _railItem(AppWorkspace.patron, Icons.query_stats, 'Patron'),
-                _railItem(AppWorkspace.settings, Icons.settings, 'Reglages'),
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('back-hub-from-module'),
+                  onPressed: controller.goToHub,
+                  icon: const Icon(Icons.apps),
+                  label: const Text('Modules'),
+                ),
+                const SizedBox(height: 22),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                Text(subtitle, style: const TextStyle(color: Colors.white60)),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: sections.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final item = sections[index];
+                      final active =
+                          controller.managementSection == item.section;
+                      return InkWell(
+                        key: ValueKey<String>(
+                            'section-${item.label.toLowerCase()}'),
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () =>
+                            controller.selectManagementSection(item.section),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: active
+                                ? const Color(0xffff7a1a)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: active
+                                    ? const Color(0xffff7a1a)
+                                    : Colors.white10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(item.icon),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text(item.label)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: body,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _railItem(AppWorkspace workspace, IconData icon, String label) {
-    final active = controller.workspace == workspace &&
-        !(workspace == AppWorkspace.floor && controller.isEditingOrder);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        key: ValueKey<String>('nav-${workspace.name}'),
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => controller.selectWorkspace(workspace),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: active ? const Color(0xffff7a1a) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: active ? const Color(0xffff7a1a) : Colors.white10,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(height: 6),
-              Text(label, style: const TextStyle(fontSize: 11)),
-            ],
+class _MenuStockBody extends StatelessWidget {
+  const _MenuStockBody({Key? key, required this.controller}) : super(key: key);
+
+  final RestaurantController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (controller.managementSection) {
+      case ManagementSection.categories:
+        return _ManagementPlaceholder(
+          title: 'Categories',
+          subtitle: 'Creer et organiser les familles du menu.',
+          icon: Icons.category,
+          children: controller.database.categories
+              .map((category) => category.name)
+              .toList(),
+        );
+      case ManagementSection.products:
+        return _ManagementPlaceholder(
+          title: 'Produits',
+          subtitle: 'Prix, stations cuisine, disponibilite et tuiles.',
+          icon: Icons.restaurant_menu,
+          children: controller.database.menu.map((item) => item.name).toList(),
+        );
+      case ManagementSection.notes:
+        return const _ManagementPlaceholder(
+          title: 'Notes',
+          subtitle: 'Notes cuisine rapides: sans sel, bien cuit, allergie.',
+          icon: Icons.sticky_note_2,
+          children: ['Sans piment', 'Sauce a part', 'Bien cuit'],
+        );
+      case ManagementSection.modifiers:
+        return const _ManagementPlaceholder(
+          title: 'Modifiers',
+          subtitle: 'Options produit: taille, supplements et cuisson.',
+          icon: Icons.tune,
+          children: ['Taille', 'Supplement fromage', 'Cuisson'],
+        );
+      case ManagementSection.ingredients:
+        return const _ManagementPlaceholder(
+          title: 'Ingredients',
+          subtitle: 'Fiches recettes et ingredients lies au stock.',
+          icon: Icons.kitchen,
+          children: ['Pain burger', 'Poulet', 'Menthe'],
+        );
+      case ManagementSection.stock:
+        return const _ManagementPlaceholder(
+          title: 'Stock',
+          subtitle: 'Quantites disponibles, alertes et mouvements.',
+          icon: Icons.inventory,
+          children: ['Poulet: 18 kg', 'Orange: 42 kg', 'The: 8 kg'],
+        );
+      case ManagementSection.inventory:
+        return const _ManagementPlaceholder(
+          title: 'Inventaire',
+          subtitle: 'Comptages et ecarts.',
+          icon: Icons.fact_check,
+          children: ['Inventaire matin', 'Inventaire soir'],
+        );
+      case ManagementSection.suppliers:
+        return const _ManagementPlaceholder(
+          title: 'Fournisseurs',
+          subtitle: 'Contacts et achats.',
+          icon: Icons.local_shipping,
+          children: ['Primeur', 'Boucher', 'Boissons'],
+        );
+    }
+  }
+}
+
+class _ManagementPlaceholder extends StatelessWidget {
+  const _ManagementPlaceholder({
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.children,
+  }) : super(key: key);
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<String> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Header(title: title, subtitle: subtitle),
+        const SizedBox(height: 18),
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: 3,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            childAspectRatio: 1.5,
+            children: children.map((label) {
+              return _Card(
+                child: Row(
+                  children: [
+                    Icon(icon, color: const Color(0xffff9f43), size: 32),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(label,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ),
-      ),
+      ],
     );
   }
 }
