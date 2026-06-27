@@ -1,30 +1,194 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_pos_app/main.dart';
+import 'package:flutter_pos_app/restaurant_app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  void setTestSize(Size size) {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.window.physicalSizeTestValue = size;
+    binding.window.devicePixelRatioTestValue = 1;
+  }
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() {
+    setTestSize(const Size(1440, 900));
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  tearDown(() {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.window.clearPhysicalSizeTestValue();
+    binding.window.clearDevicePixelRatioTestValue();
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  Future<void> loginAndOpenPos(WidgetTester tester,
+      {RestaurantController? controller}) async {
+    await tester.pumpWidget(RestaurantApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('login-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('module-pos')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('login opens the module hub with module tiles',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const RestaurantApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connexion POS Pro'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('login-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choisir un module'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('module-pos')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('module-menu-stock')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('module-reports')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('module-settings')), findsOneWidget);
+  });
+
+  testWidgets(
+      'point de vente opens fullscreen floor plan without global sidebar',
+      (WidgetTester tester) async {
+    await loginAndOpenPos(tester);
+
+    expect(find.text('Plan de salle'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('start-takeaway')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey<String>('start-delivery')), findsOneWidget);
+    expect(find.text('Commandes en cours'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('back-hub-from-pos')),
+        findsOneWidget);
+    expect(find.text('Salle'), findsNothing);
+  });
+
+  testWidgets('opens a table order and sends it back to the floor plan',
+      (WidgetTester tester) async {
+    final controller = RestaurantController();
+
+    await loginAndOpenPos(tester, controller: controller);
+
+    await tester.tap(find.byKey(const ValueKey<String>('table-Table 1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('POS commande'), findsOneWidget);
+    expect(find.text('Table 1'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('item-tacos-poulet')));
+    await tester.pumpAndSettle();
+
+    expect(controller.activeOrder!.lines.length, 1);
+    expect(find.text('46.20 MAD'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('send-kitchen')));
+    await tester.pumpAndSettle();
+
+    expect(controller.activeOrder, isNull);
+    expect(find.text('Plan de salle'), findsOneWidget);
+    expect(controller.occupiedOrderForTable('Table 1')!.status,
+        OrderStatus.sentToKitchen);
+  });
+
+  testWidgets('payment frees the table and updates patron reports',
+      (WidgetTester tester) async {
+    final controller = RestaurantController();
+
+    await loginAndOpenPos(tester, controller: controller);
+
+    final initialPaidOrders = controller.report.paidOrders.length;
+
+    await tester.tap(find.byKey(const ValueKey<String>('table-Table 2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('item-burger-maison')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('open-payment')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paiement Table 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('bill-100')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('confirm-payment')));
+    await tester.pumpAndSettle();
+
+    expect(controller.report.paidOrders.length, initialPaidOrders + 1);
+    expect(controller.occupiedOrderForTable('Table 2'), isNull);
+    expect(find.text('Plan de salle'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('back-hub-from-pos')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('module-reports')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Application patron'), findsOneWidget);
+    expect(find.text('Tickets payes'), findsOneWidget);
+  });
+
+  testWidgets('menu stock module uses its own sidebar shell',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const RestaurantApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('login-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('module-menu-stock')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Menu et stock'), findsOneWidget);
+    expect(find.text('Categories'), findsWidgets);
+    expect(find.text('Produits'), findsWidgets);
+    expect(find.text('Modifiers'), findsOneWidget);
+    expect(find.text('Ingredients'), findsOneWidget);
+    expect(find.text('Stock'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('back-hub-from-module')),
+        findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('section-produits')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tacos Poulet'), findsOneWidget);
+    expect(find.text('Burger Maison'), findsOneWidget);
+  });
+
+  testWidgets('core modules render on wide and square touch terminals',
+      (WidgetTester tester) async {
+    const terminalSizes = [
+      Size(1366, 768),
+      Size(1024, 768),
+      Size(900, 900),
+    ];
+
+    for (final size in terminalSizes) {
+      setTestSize(size);
+      final controller = RestaurantController();
+      await tester.pumpWidget(RestaurantApp(
+        key: ValueKey<String>('terminal-${size.width}x${size.height}'),
+        controller: controller,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey<String>('login-submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Choisir un module'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('module-pos')));
+      await tester.pumpAndSettle();
+      expect(find.text('Plan de salle'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('back-hub-from-pos')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module-menu-stock')));
+      await tester.pumpAndSettle();
+      expect(find.text('Menu et stock'), findsOneWidget);
+
+      await tester
+          .tap(find.byKey(const ValueKey<String>('back-hub-from-module')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module-reports')));
+      await tester.pumpAndSettle();
+      expect(find.text('Application patron'), findsOneWidget);
+    }
   });
 }
