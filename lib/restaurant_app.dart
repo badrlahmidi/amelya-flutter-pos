@@ -945,11 +945,11 @@ class _ModuleHubPage extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
-                  final columns = width >= 1180
+                  final columns = width >= 1320
                       ? 4
-                      : width >= 860
+                      : width >= 900
                           ? 3
-                          : width >= 560
+                          : width >= 620
                               ? 2
                               : 1;
                   return GridView.count(
@@ -1285,7 +1285,7 @@ class _ModuleSidebarShell extends StatelessWidget {
       body: Row(
         children: [
           Container(
-            width: 246,
+            width: 220,
             padding: const EdgeInsets.all(18),
             decoration: const BoxDecoration(
               color: _AppColors.surface,
@@ -2505,6 +2505,10 @@ class _PaymentDialogState extends State<_PaymentDialog> {
                 const SizedBox(height: 18),
                 FilledButton.icon(
                   key: const ValueKey<String>('confirm-payment'),
+                  style: FilledButton.styleFrom(
+                    disabledBackgroundColor: _AppColors.surfaceAlt,
+                    disabledForegroundColor: _AppColors.muted,
+                  ),
                   onPressed: canPay
                       ? () {
                           widget.controller
