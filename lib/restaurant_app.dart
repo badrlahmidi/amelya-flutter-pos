@@ -952,46 +952,56 @@ class _ModuleHubPage extends StatelessWidget {
                           : width >= 620
                               ? 2
                               : 1;
-                  return GridView.count(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 18,
-                    childAspectRatio: 1.12,
-                    children: [
-                      _ModuleTile(
-                        keyName: 'module-pos',
-                        title: 'Point de vente',
-                        subtitle: 'Plan tables, commande, paiement',
-                        icon: Icons.point_of_sale,
-                        color: _AppColors.primary,
-                        onTap: () =>
-                            controller.openModule(AppRoute.pointOfSale),
-                      ),
-                      _ModuleTile(
-                        keyName: 'module-menu-stock',
-                        title: 'Menu et stock',
-                        subtitle: 'Categories, produits, stock',
-                        icon: Icons.inventory_2,
-                        color: const Color(0xff22c55e),
-                        onTap: () => controller.openModule(AppRoute.menuStock),
-                      ),
-                      _ModuleTile(
-                        keyName: 'module-reports',
-                        title: 'Rapports',
-                        subtitle: 'Ventes, paiements, articles',
-                        icon: Icons.query_stats,
-                        color: const Color(0xff38bdf8),
-                        onTap: () => controller.openModule(AppRoute.reports),
-                      ),
-                      _ModuleTile(
-                        keyName: 'module-settings',
-                        title: 'Parametrage',
-                        subtitle: 'Restaurant, taxes, utilisateurs',
-                        icon: Icons.settings,
-                        color: const Color(0xffa855f7),
-                        onTap: () => controller.openModule(AppRoute.settings),
-                      ),
-                    ],
+                  final tileWidth = (width - (columns - 1) * 18) / columns;
+                  Widget tile(_ModuleTile child) {
+                    return SizedBox(
+                      width: tileWidth,
+                      height: 196,
+                      child: child,
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 18,
+                      runSpacing: 18,
+                      children: [
+                        tile(_ModuleTile(
+                          keyName: 'module-pos',
+                          title: 'Point de vente',
+                          subtitle: 'Plan tables, commande, paiement',
+                          icon: Icons.point_of_sale,
+                          color: _AppColors.primary,
+                          onTap: () =>
+                              controller.openModule(AppRoute.pointOfSale),
+                        )),
+                        tile(_ModuleTile(
+                          keyName: 'module-menu-stock',
+                          title: 'Menu et stock',
+                          subtitle: 'Categories, produits, stock',
+                          icon: Icons.inventory_2,
+                          color: const Color(0xff22c55e),
+                          onTap: () =>
+                              controller.openModule(AppRoute.menuStock),
+                        )),
+                        tile(_ModuleTile(
+                          keyName: 'module-reports',
+                          title: 'Rapports',
+                          subtitle: 'Ventes, paiements, articles',
+                          icon: Icons.query_stats,
+                          color: const Color(0xff38bdf8),
+                          onTap: () => controller.openModule(AppRoute.reports),
+                        )),
+                        tile(_ModuleTile(
+                          keyName: 'module-settings',
+                          title: 'Parametrage',
+                          subtitle: 'Restaurant, taxes, utilisateurs',
+                          icon: Icons.settings,
+                          color: const Color(0xffa855f7),
+                          onTap: () => controller.openModule(AppRoute.settings),
+                        )),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -1028,7 +1038,7 @@ class _ModuleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _AppColors.surface,
           borderRadius: BorderRadius.circular(22),
@@ -1045,20 +1055,23 @@ class _ModuleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 28),
             ),
             const Spacer(),
             Text(title,
                 style:
                     const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text(subtitle, style: const TextStyle(color: _AppColors.muted)),
+            Text(subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _AppColors.muted, fontSize: 13)),
           ],
         ),
       ),
