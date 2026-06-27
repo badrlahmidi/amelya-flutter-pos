@@ -47,6 +47,26 @@ enum PaymentMethod {
   mobile,
 }
 
+class _AppColors {
+  static const background = Color(0xfff6f7fb);
+  static const surface = Colors.white;
+  static const surfaceAlt = Color(0xffeef1f6);
+  static const border = Color(0xffd9dee8);
+  static const primary = Color(0xffff7a1a);
+  static const primarySoft = Color(0xffffeadb);
+  static const text = Color(0xff172033);
+  static const muted = Color(0xff667085);
+  static const subtle = Color(0xff98a2b3);
+  static const success = Color(0xff16a34a);
+  static const danger = Color(0xffdc2626);
+}
+
+class _TouchMetrics {
+  static const edge = 18.0;
+  static const radius = 18.0;
+  static const minTarget = 56.0;
+}
+
 class MenuCategory {
   const MenuCategory({
     required this.id,
@@ -754,13 +774,33 @@ class _RestaurantAppState extends State<RestaurantApp> {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
-            brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xff111318),
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xffff7a1a),
-              secondary: Color(0xff22c55e),
-              surface: Color(0xff1d2029),
-              background: Color(0xff111318),
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: _AppColors.background,
+            fontFamily: 'Roboto',
+            colorScheme: const ColorScheme.light(
+              primary: _AppColors.primary,
+              secondary: _AppColors.success,
+              surface: _AppColors.surface,
+              background: _AppColors.background,
+              onSurface: _AppColors.text,
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, _TouchMetrics.minTarget),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(_TouchMetrics.radius),
+                ),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, _TouchMetrics.minTarget),
+                foregroundColor: _AppColors.text,
+                side: const BorderSide(color: _AppColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(_TouchMetrics.radius),
+                ),
+              ),
             ),
           ),
           home: _AppRouter(controller: controller),
@@ -814,7 +854,7 @@ class _LoginPage extends StatelessWidget {
                   width: 68,
                   height: 68,
                   decoration: BoxDecoration(
-                    color: const Color(0xffff7a1a),
+                    color: _AppColors.primary,
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: const Icon(Icons.restaurant_menu,
@@ -826,7 +866,7 @@ class _LoginPage extends StatelessWidget {
                         TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
                 const Text('Connectez-vous pour choisir votre module.',
-                    style: TextStyle(color: Colors.white60)),
+                    style: TextStyle(color: _AppColors.muted)),
                 const SizedBox(height: 22),
                 TextField(
                   key: const ValueKey<String>('login-user'),
@@ -879,7 +919,7 @@ class _ModuleHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(_TouchMetrics.edge),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -900,7 +940,7 @@ class _ModuleHubPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 18),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -916,14 +956,14 @@ class _ModuleHubPage extends StatelessWidget {
                     crossAxisCount: columns,
                     mainAxisSpacing: 18,
                     crossAxisSpacing: 18,
-                    childAspectRatio: 1.05,
+                    childAspectRatio: 1.12,
                     children: [
                       _ModuleTile(
                         keyName: 'module-pos',
                         title: 'Point de vente',
                         subtitle: 'Plan tables, commande, paiement',
                         icon: Icons.point_of_sale,
-                        color: const Color(0xffff7a1a),
+                        color: _AppColors.primary,
                         onTap: () =>
                             controller.openModule(AppRoute.pointOfSale),
                       ),
@@ -988,30 +1028,37 @@ class _ModuleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xff1d2029),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white10),
+          color: _AppColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 14,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 70,
-              height: 70,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(icon, color: color, size: 36),
+              child: Icon(icon, color: color, size: 32),
             ),
             const Spacer(),
             Text(title,
                 style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text(subtitle, style: const TextStyle(color: Colors.white60)),
+            Text(subtitle, style: const TextStyle(color: _AppColors.muted)),
           ],
         ),
       ),
@@ -1040,15 +1087,20 @@ class _PosFullscreenShell extends StatelessWidget {
                   icon: const Icon(Icons.apps),
                   label: const Text('Modules'),
                 ),
-                const Spacer(),
-                Text(
-                  controller.isEditingOrder
-                      ? 'Point de vente - commande'
-                      : controller.workspace == AppWorkspace.kitchen
-                          ? 'Point de vente - cuisine'
-                          : 'Point de vente - plan de salle',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w900),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    controller.isEditingOrder
+                        ? 'Point de vente - commande'
+                        : controller.workspace == AppWorkspace.kitchen
+                            ? 'Point de vente - cuisine'
+                            : 'Point de vente - plan de salle',
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 FilledButton.tonalIcon(
@@ -1235,7 +1287,10 @@ class _ModuleSidebarShell extends StatelessWidget {
           Container(
             width: 246,
             padding: const EdgeInsets.all(18),
-            color: const Color(0xff181a22),
+            decoration: const BoxDecoration(
+              color: _AppColors.surface,
+              border: Border(right: BorderSide(color: _AppColors.border)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1250,7 +1305,7 @@ class _ModuleSidebarShell extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 22, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
-                Text(subtitle, style: const TextStyle(color: Colors.white60)),
+                Text(subtitle, style: const TextStyle(color: _AppColors.muted)),
                 const SizedBox(height: 24),
                 Expanded(
                   child: ListView.separated(
@@ -1270,19 +1325,34 @@ class _ModuleSidebarShell extends StatelessWidget {
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: active
-                                ? const Color(0xffff7a1a)
+                                ? _AppColors.primarySoft
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                                 color: active
-                                    ? const Color(0xffff7a1a)
-                                    : Colors.white10),
+                                    ? _AppColors.primary
+                                    : _AppColors.border),
                           ),
                           child: Row(
                             children: [
-                              Icon(item.icon),
+                              Icon(item.icon,
+                                  color: active
+                                      ? _AppColors.primary
+                                      : _AppColors.muted),
                               const SizedBox(width: 10),
-                              Expanded(child: Text(item.label)),
+                              Expanded(
+                                child: Text(
+                                  item.label,
+                                  style: TextStyle(
+                                    color: active
+                                        ? _AppColors.primary
+                                        : _AppColors.text,
+                                    fontWeight: active
+                                        ? FontWeight.w800
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1406,7 +1476,7 @@ class _ManagementPlaceholder extends StatelessWidget {
               return _Card(
                 child: Row(
                   children: [
-                    Icon(icon, color: const Color(0xffff9f43), size: 32),
+                    Icon(icon, color: _AppColors.primary, size: 32),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(label,
@@ -1460,46 +1530,59 @@ class _FloorWorkspace extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 7,
-                child: _Card(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Tables',
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 14),
-                      Expanded(
-                        child: GridView.count(
-                          key: const ValueKey<String>('table-plan'),
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                          childAspectRatio: 1.2,
-                          children: controller.tables.map((table) {
-                            final order =
-                                controller.occupiedOrderForTable(table);
-                            return _TableTile(
-                              table: table,
-                              order: order,
-                              onTap: () => controller.openTable(table),
-                            );
-                          }).toList(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 1120;
+              final tables = _Card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Tables',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: GridView.builder(
+                        key: const ValueKey<String>('table-plan'),
+                        itemCount: controller.tables.length,
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: wide ? 190 : 160,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: wide ? 1.05 : 0.92,
                         ),
+                        itemBuilder: (context, index) {
+                          final table = controller.tables[index];
+                          final order = controller.occupiedOrderForTable(table);
+                          return _TableTile(
+                            table: table,
+                            order: order,
+                            onTap: () => controller.openTable(table),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 18),
-              SizedBox(
-                width: 390,
-                child: _OpenOrdersPanel(controller: controller),
-              ),
-            ],
+              );
+              final openOrders = _OpenOrdersPanel(controller: controller);
+              if (!wide) {
+                return Column(
+                  children: [
+                    Expanded(flex: 6, child: tables),
+                    const SizedBox(height: 12),
+                    Expanded(flex: 4, child: openOrders),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(flex: 7, child: tables),
+                  const SizedBox(width: 14),
+                  SizedBox(width: 350, child: openOrders),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -1527,12 +1610,12 @@ class _TableTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(22),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: occupied ? const Color(0xff3a2419) : const Color(0xff20242f),
+          color: occupied ? _AppColors.primarySoft : _AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: occupied ? const Color(0xffff7a1a) : Colors.white10,
+            color: occupied ? _AppColors.primary : _AppColors.border,
             width: occupied ? 2 : 1,
           ),
         ),
@@ -1543,7 +1626,7 @@ class _TableTile extends StatelessWidget {
               children: [
                 Icon(
                   occupied ? Icons.event_seat : Icons.table_bar,
-                  color: occupied ? const Color(0xffff9f43) : Colors.white54,
+                  color: occupied ? _AppColors.primary : _AppColors.muted,
                 ),
                 const Spacer(),
                 _StatusDot(occupied: occupied),
@@ -1552,16 +1635,20 @@ class _TableTile extends StatelessWidget {
             const Spacer(),
             Text(table,
                 style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
             if (occupied) ...[
               Text('Waiter ${order!.serverName}',
-                  style: const TextStyle(color: Colors.white70)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _AppColors.muted)),
               Text(_money(order!.total),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Color(0xffff9f43), fontWeight: FontWeight.w800)),
+                      color: _AppColors.primary, fontWeight: FontWeight.w800)),
             ] else
-              const Text('Libre', style: TextStyle(color: Colors.white54)),
+              const Text('Libre', style: TextStyle(color: _AppColors.muted)),
           ],
         ),
       ),
@@ -1586,7 +1673,7 @@ class _OpenOrdersPanel extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           const Text('Recuperer une order pas payee',
-              style: TextStyle(color: Colors.white60)),
+              style: TextStyle(color: _AppColors.muted)),
           const SizedBox(height: 14),
           Expanded(
             child: orders.isEmpty
@@ -1607,9 +1694,9 @@ class _OpenOrdersPanel extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xff252936),
+                            color: _AppColors.surfaceAlt,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white10),
+                            border: Border.all(color: _AppColors.border),
                           ),
                           child: Row(
                             children: [
@@ -1644,7 +1731,7 @@ class _OrderEntryWorkspace extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: 190, child: _CategoryColumn(controller: controller)),
+        SizedBox(width: 170, child: _CategoryColumn(controller: controller)),
         const SizedBox(width: 16),
         Expanded(
           flex: 6,
@@ -1662,7 +1749,7 @@ class _OrderEntryWorkspace extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         SizedBox(
-          width: 430,
+          width: 380,
           child: _TicketPanel(controller: controller, order: order),
         ),
       ],
@@ -1705,16 +1792,22 @@ class _CategoryColumn extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: active
-                          ? const Color(0xffff7a1a)
-                          : const Color(0xff252936),
+                      color:
+                          active ? _AppColors.primary : _AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
-                        Icon(category.icon),
+                        Icon(category.icon,
+                            color: active ? Colors.white : _AppColors.muted),
                         const SizedBox(width: 10),
-                        Expanded(child: Text(category.name)),
+                        Expanded(
+                          child: Text(
+                            category.name,
+                            style: TextStyle(
+                                color: active ? Colors.white : _AppColors.text),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1748,10 +1841,10 @@ class _MenuGrid extends StatelessWidget {
       key: const ValueKey<String>('product-grid'),
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 250,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 0.92,
+        maxCrossAxisExtent: 210,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.78,
       ),
       itemBuilder: (context, index) {
         final item = items[index];
@@ -1783,7 +1876,7 @@ class _MenuGrid extends StatelessWidget {
                         fontSize: 17, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 4),
                 Text(item.station,
-                    style: const TextStyle(color: Colors.white54)),
+                    style: const TextStyle(color: _AppColors.muted)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -1794,9 +1887,9 @@ class _MenuGrid extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xffff9f43))),
+                              color: _AppColors.primary)),
                     ),
-                    const Icon(Icons.add_circle, color: Color(0xff22c55e)),
+                    const Icon(Icons.add_circle, color: _AppColors.success),
                   ],
                 ),
               ],
@@ -1833,7 +1926,7 @@ class _TicketPanel extends StatelessWidget {
                   children: [
                     Text(_orderTypeName(order.type).toUpperCase(),
                         style: const TextStyle(
-                            color: Color(0xffff9f43),
+                            color: _AppColors.primary,
                             fontWeight: FontWeight.w900)),
                     const SizedBox(height: 5),
                     Text(order.title,
@@ -1841,7 +1934,7 @@ class _TicketPanel extends StatelessWidget {
                             fontSize: 24, fontWeight: FontWeight.w900)),
                     Text(
                         'Waiter ${order.serverName} - ${_statusName(order.status)}',
-                        style: const TextStyle(color: Colors.white60)),
+                        style: const TextStyle(color: _AppColors.muted)),
                   ],
                 ),
               ),
@@ -1852,9 +1945,9 @@ class _TicketPanel extends StatelessWidget {
               ),
             ],
           ),
-          const Divider(color: Colors.white10, height: 26),
+          const Divider(color: _AppColors.border, height: 26),
           const _TicketHeader(),
-          const Divider(color: Colors.white10),
+          const Divider(color: _AppColors.border),
           Expanded(
             child: order.lines.isEmpty
                 ? const _EmptyState(
@@ -1865,7 +1958,7 @@ class _TicketPanel extends StatelessWidget {
                 : ListView.separated(
                     itemCount: order.lines.length,
                     separatorBuilder: (_, __) =>
-                        const Divider(color: Colors.white10),
+                        const Divider(color: _AppColors.border),
                     itemBuilder: (context, index) {
                       final line = order.lines[index];
                       return _TicketLine(
@@ -1876,7 +1969,7 @@ class _TicketPanel extends StatelessWidget {
                     },
                   ),
           ),
-          const Divider(color: Colors.white10),
+          const Divider(color: _AppColors.border),
           _AmountRow(label: 'Sous-total', value: _money(order.subtotal)),
           if (order.discountRate > 0)
             _AmountRow(
@@ -1886,19 +1979,23 @@ class _TicketPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xffff7a1a),
+              color: _AppColors.primary,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
               children: [
                 const Expanded(
                   child: Text('TOTAL',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900)),
                 ),
                 Text(_money(order.total),
                     style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.w900)),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900)),
               ],
             ),
           ),
@@ -1963,12 +2060,14 @@ class _TicketHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: const [
-        Expanded(flex: 4, child: Text('Article')),
-        Expanded(child: Center(child: Text('Qte'))),
+        Expanded(flex: 3, child: Text('Article')),
+        Expanded(flex: 2, child: Center(child: Text('Qte'))),
         Expanded(
+            flex: 2,
             child:
                 Align(alignment: Alignment.centerRight, child: Text('Prix'))),
         Expanded(
+            flex: 2,
             child:
                 Align(alignment: Alignment.centerRight, child: Text('Total'))),
       ],
@@ -1993,11 +2092,12 @@ class _TicketLine extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: 4,
+          flex: 3,
           child: Text(line.item.name,
               maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         Expanded(
+          flex: 2,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -2012,12 +2112,14 @@ class _TicketLine extends StatelessWidget {
           ),
         ),
         Expanded(
+          flex: 2,
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(_money(line.item.price)),
           ),
         ),
         Expanded(
+          flex: 2,
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(_money(line.total)),
@@ -2124,8 +2226,8 @@ class _KitchenTicket extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text('${order.title} - ${order.serverName}',
-              style: const TextStyle(color: Colors.white60)),
-          const Divider(color: Colors.white10, height: 24),
+              style: const TextStyle(color: _AppColors.muted)),
+          const Divider(color: _AppColors.border, height: 24),
           Expanded(
             child: ListView(
               children: order.lines
@@ -2333,134 +2435,155 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   Widget build(BuildContext context) {
     final canPay = paidAmount >= widget.order.total;
     return Dialog(
+      backgroundColor: _AppColors.surface,
+      insetPadding: const EdgeInsets.all(18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Paiement ${widget.order.title}',
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    _AmountRow(
-                        label: 'Total a payer',
-                        value: _money(widget.order.total),
-                        strong: true),
-                    _AmountRow(
-                        label: 'Montant donne',
-                        value: _money(paidAmount),
-                        strong: true),
-                    _AmountRow(
-                        label: 'Rendu',
-                        value: _money(change < 0 ? 0 : change),
-                        strong: true),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      children: PaymentMethod.values.map((entry) {
-                        return ChoiceChip(
-                          key: ValueKey<String>('dialog-method-${entry.name}'),
-                          selected: method == entry,
-                          label: Text(_paymentName(entry)),
-                          onSelected: (_) {
-                            setState(() {
-                              method = entry;
-                              if (entry != PaymentMethod.cash) {
-                                amountText =
-                                    widget.order.total.toStringAsFixed(2);
-                              } else {
-                                amountText = '';
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Billets rapides Maroc',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [20, 50, 100, 200].map((bill) {
-                        return _BillButton(
-                          value: bill,
-                          onTap: () => setState(() {
-                            amountText = (paidAmount + bill).toStringAsFixed(0);
-                          }),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      key: const ValueKey<String>('confirm-payment'),
-                      onPressed: canPay
-                          ? () {
-                              widget.controller
-                                  .payOrder(widget.order, method, paidAmount);
-                              Navigator.of(context).pop();
-                            }
-                          : null,
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Valider paiement et liberer table'),
-                    ),
-                  ],
+        constraints: const BoxConstraints(maxWidth: 820),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 680;
+            final summary = Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Paiement ${widget.order.title}',
+                    style: const TextStyle(
+                        color: _AppColors.text,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                _AmountRow(
+                    label: 'Total a payer',
+                    value: _money(widget.order.total),
+                    strong: true),
+                _AmountRow(
+                    label: 'Montant donne',
+                    value: _money(paidAmount),
+                    strong: true),
+                _AmountRow(
+                    label: 'Rendu',
+                    value: _money(change < 0 ? 0 : change),
+                    strong: true),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: PaymentMethod.values.map((entry) {
+                    return ChoiceChip(
+                      key: ValueKey<String>('dialog-method-${entry.name}'),
+                      selected: method == entry,
+                      label: Text(_paymentName(entry)),
+                      onSelected: (_) {
+                        setState(() {
+                          method = entry;
+                          if (entry != PaymentMethod.cash) {
+                            amountText = widget.order.total.toStringAsFixed(2);
+                          } else {
+                            amountText = '';
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
-              ),
-              const SizedBox(width: 24),
-              SizedBox(
-                width: 260,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: const Color(0xff111318),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        amountText.isEmpty ? '0' : amountText,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                            fontSize: 32, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Numpad(
-                      onTap: (value) => setState(() {
-                        if (value == 'C') {
-                          amountText = '';
-                        } else if (value == '<') {
-                          if (amountText.isNotEmpty) {
-                            amountText =
-                                amountText.substring(0, amountText.length - 1);
-                          }
-                        } else if (value == '.') {
-                          if (!amountText.contains('.')) {
-                            amountText =
-                                amountText.isEmpty ? '0.' : '$amountText.';
-                          }
-                        } else {
-                          amountText =
-                              amountText == '0' ? value : '$amountText$value';
-                        }
+                const SizedBox(height: 16),
+                const Text('Billets rapides Maroc',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [20, 50, 100, 200].map((bill) {
+                    return _BillButton(
+                      value: bill,
+                      onTap: () => setState(() {
+                        amountText = (paidAmount + bill).toStringAsFixed(0);
                       }),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  key: const ValueKey<String>('confirm-payment'),
+                  onPressed: canPay
+                      ? () {
+                          widget.controller
+                              .payOrder(widget.order, method, paidAmount);
+                          Navigator.of(context).pop();
+                        }
+                      : null,
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Valider paiement et liberer table'),
+                ),
+              ],
+            );
+            final numpad = SizedBox(
+              width: wide ? 260 : double.infinity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: _AppColors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: _AppColors.border),
+                    ),
+                    child: Text(
+                      amountText.isEmpty ? '0' : amountText,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          color: _AppColors.text,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _Numpad(
+                    onTap: (value) => setState(() {
+                      if (value == 'C') {
+                        amountText = '';
+                      } else if (value == '<') {
+                        if (amountText.isNotEmpty) {
+                          amountText =
+                              amountText.substring(0, amountText.length - 1);
+                        }
+                      } else if (value == '.') {
+                        if (!amountText.contains('.')) {
+                          amountText =
+                              amountText.isEmpty ? '0.' : '$amountText.';
+                        }
+                      } else {
+                        amountText =
+                            amountText == '0' ? value : '$amountText$value';
+                      }
+                    }),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+            return Padding(
+              padding: const EdgeInsets.all(22),
+              child: wide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: summary),
+                        const SizedBox(width: 24),
+                        numpad,
+                      ],
+                    )
+                  : ListView(
+                      shrinkWrap: true,
+                      children: [
+                        summary,
+                        const SizedBox(height: 18),
+                        numpad,
+                      ],
+                    ),
+            );
+          },
         ),
       ),
     );
@@ -2567,9 +2690,11 @@ class _Header extends StatelessWidget {
             children: [
               Text(title,
                   style: const TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.w800)),
+                      color: _AppColors.text,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              Text(subtitle, style: const TextStyle(color: Colors.white60)),
+              Text(subtitle, style: const TextStyle(color: _AppColors.muted)),
             ],
           ),
         ),
@@ -2594,7 +2719,7 @@ class _SearchBox extends StatelessWidget {
       onChanged: controller.setSearch,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xff1d2029),
+        fillColor: _AppColors.surface,
         hintText: 'Rechercher produit...',
         prefixIcon: const Icon(Icons.search),
         border: OutlineInputBorder(
@@ -2618,7 +2743,7 @@ class _ServerSelector extends StatelessWidget {
       decoration: InputDecoration(
         filled: true,
         labelText: 'Waiter',
-        fillColor: const Color(0xff1d2029),
+        fillColor: _AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
@@ -2664,11 +2789,11 @@ class _OrderSummary extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
             '${order.id} - ${_orderTypeName(order.type)} - ${order.serverName}',
-            style: const TextStyle(color: Colors.white60)),
+            style: const TextStyle(color: _AppColors.muted)),
         const SizedBox(height: 6),
         Text('${order.itemCount} articles - ${_money(order.total)}',
             style: const TextStyle(
-                color: Color(0xffff9f43), fontWeight: FontWeight.w800)),
+                color: _AppColors.primary, fontWeight: FontWeight.w800)),
       ],
     );
   }
@@ -2695,17 +2820,17 @@ class _MetricCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xffff7a1a).withOpacity(0.16),
+              color: _AppColors.primarySoft,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: const Color(0xffff9f43)),
+            child: Icon(icon, color: _AppColors.primary),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white60)),
+                Text(title, style: const TextStyle(color: _AppColors.muted)),
                 const SizedBox(height: 6),
                 Text(value,
                     style: const TextStyle(
@@ -2741,11 +2866,11 @@ class _ReportList extends StatelessWidget {
         const SizedBox(height: 14),
         Expanded(
           child: rows.isEmpty
-              ? Text(empty, style: const TextStyle(color: Colors.white54))
+              ? Text(empty, style: const TextStyle(color: _AppColors.subtle))
               : ListView.separated(
                   itemCount: rows.length,
                   separatorBuilder: (_, __) =>
-                      const Divider(color: Colors.white10),
+                      const Divider(color: _AppColors.border),
                   itemBuilder: (context, index) => Text(rows[index]),
                 ),
         ),
@@ -2772,14 +2897,14 @@ class _SettingsTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xffff9f43), size: 34),
+          Icon(icon, color: _AppColors.primary, size: 34),
           const SizedBox(height: 18),
           Text(title,
               style:
                   const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Text(body,
-              style: const TextStyle(color: Colors.white60, height: 1.35)),
+              style: const TextStyle(color: _AppColors.muted, height: 1.35)),
         ],
       ),
     );
@@ -2822,7 +2947,7 @@ class _StatusDot extends StatelessWidget {
       height: 12,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: occupied ? const Color(0xffef4444) : const Color(0xff22c55e),
+        color: occupied ? _AppColors.danger : _AppColors.success,
       ),
     );
   }
@@ -2849,7 +2974,7 @@ class _AmountRow extends StatelessWidget {
           Expanded(
               child: Text(label,
                   style: TextStyle(
-                      color: strong ? Colors.white : Colors.white60))),
+                      color: strong ? _AppColors.text : _AppColors.muted))),
           Text(
             value,
             style: TextStyle(
@@ -2873,9 +2998,16 @@ class _Card extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xff1d2029),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
+        color: _AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: child,
     );
@@ -2900,13 +3032,13 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white24, size: 42),
+          Icon(icon, color: _AppColors.subtle, size: 42),
           const SizedBox(height: 10),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white54)),
+              style: const TextStyle(color: _AppColors.subtle)),
         ],
       ),
     );
@@ -2957,7 +3089,7 @@ String _statusName(OrderStatus status) {
 Color _statusColor(OrderStatus status) {
   switch (status) {
     case OrderStatus.draft:
-      return Colors.white54;
+      return _AppColors.muted;
     case OrderStatus.sentToKitchen:
       return const Color(0xfffacc15);
     case OrderStatus.ready:

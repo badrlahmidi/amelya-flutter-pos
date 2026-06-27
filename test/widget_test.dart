@@ -3,10 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_pos_app/restaurant_app.dart';
 
 void main() {
-  setUp(() {
+  void setTestSize(Size size) {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = const Size(1440, 900);
+    binding.window.physicalSizeTestValue = size;
     binding.window.devicePixelRatioTestValue = 1;
+  }
+
+  setUp(() {
+    setTestSize(const Size(1440, 900));
   });
 
   tearDown(() {
@@ -146,5 +150,45 @@ void main() {
 
     expect(find.text('Tacos Poulet'), findsOneWidget);
     expect(find.text('Burger Maison'), findsOneWidget);
+  });
+
+  testWidgets('core modules render on wide and square touch terminals',
+      (WidgetTester tester) async {
+    const terminalSizes = [
+      Size(1366, 768),
+      Size(1024, 768),
+      Size(900, 900),
+    ];
+
+    for (final size in terminalSizes) {
+      setTestSize(size);
+      final controller = RestaurantController();
+      await tester.pumpWidget(RestaurantApp(
+        key: ValueKey<String>('terminal-${size.width}x${size.height}'),
+        controller: controller,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey<String>('login-submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Choisir un module'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('module-pos')));
+      await tester.pumpAndSettle();
+      expect(find.text('Plan de salle'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('back-hub-from-pos')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module-menu-stock')));
+      await tester.pumpAndSettle();
+      expect(find.text('Menu et stock'), findsOneWidget);
+
+      await tester
+          .tap(find.byKey(const ValueKey<String>('back-hub-from-module')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module-reports')));
+      await tester.pumpAndSettle();
+      expect(find.text('Application patron'), findsOneWidget);
+    }
   });
 }
